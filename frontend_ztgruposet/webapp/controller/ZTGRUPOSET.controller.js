@@ -8,8 +8,9 @@ sap.ui.define([
   "sap/m/library",
   "sap/m/MessageBox",
   "sap/m/MessageToast",
-  "sap/m/Text"
-], (Controller, JSONModel, Filter, FilterOperator, Dialog, Button, library,MessageBox, MessageToast, Text) => {
+  "sap/m/Text",
+  "sap/ui/core/Fragment"
+], (Controller, JSONModel, Filter, FilterOperator, Dialog, Button, library,MessageBox, MessageToast, Text, Fragment) => {
   "use strict";
 
   const ButtonType = library.ButtonType;
@@ -18,6 +19,7 @@ sap.ui.define([
 
     onInit() {
       this._loadData(); // <- carga inicial
+      this.getView().setModel(new JSONModel({}), "updateModel");// modelo para operaciones de update/create
     },
 
     // ==== CARGA DE DATOS DESDE CAP/CDS (POST) ====
@@ -222,24 +224,84 @@ sap.ui.define([
     },
 
     onEditPress: function () {
-      if (!this.oDefaultDialog) {
-        this.oDefaultDialog = new Dialog({
-          title: "Editar grupo de SKU",
-          content: new Text({ text: "Form para editar un grupo" }),
-          beginButton: new Button({
-            type: ButtonType.Emphasized,
-            text: "Guardar",
-            press: function () { this.oDefaultDialog.close(); }.bind(this)
-          }),
-          endButton: new Button({
-            text: "Cancelar",
-            press: function () { this.oDefaultDialog.close(); }.bind(this)
-          })
-        });
-        this.getView().addDependent(this.oDefaultDialog);
-      }
-      this.oDefaultDialog.open();
-    },
+                const oRec = this._getSelectedRecord(); // Usa la función de tu compañero
+                if (!oRec) {
+                    MessageToast.show("Selecciona un registro para editar.");
+                    return;
+                }
+
+                // 1. Copia los datos de la fila al modelo "updateModel"
+                const oUpdateModel = this.getView().getModel("updateModel");
+                oUpdateModel.setData(Object.assign({}, oRec)); // Hacemos una copia
+
+                // 2. Abre el Fragmento (el pop-up)
+                this._getUpdateDialog().then(oDialog => {
+                    oDialog.open();
+                });
+            },
+
+    onSaveUpdate: async function () {
+            const oView = this.getView();
+            const oUpdateModel = oView.getModel("updateModel");
+            const oRecActualizado = oUpdateModel.getData(); // Datos del formulario
+
+            // URL del endpoint de Update (¡igual al de "Activar" de tu compañero!)
+            const url = "/api/security/gruposet/crud?ProcessType=UpdateOne&DBServer=mongodb&LoggedUser=FMIRANDAJ";
+
+            // Construimos el Payload (igual al de "Activar")
+            const payload = {
+                ...this._buildDeletePayload(oRecActualizado), // Las 6 llaves (IDSOCIEDAD, IDCEDI, etc.)
+                data: {
+                    INFOAD: oRecActualizado.INFOAD // El único campo que queremos actualizar
+                    // ... aquí puedes añadir campos de auditoría si los necesitas
+                    // USUARIOMOD: "FMIRANDAJ",
+                }
+            };
+
+            oView.setBusy(true);
+            try {
+                const res = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                const json = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error("HTTP " + res.status);
+
+                MessageToast.show("Registro actualizado correctamente.");
+                this._getUpdateDialog().then(oDialog => oDialog.close()); // Cierra el pop-up
+                await this._loadData(); // Recarga la tabla
+                
+            } catch (e) {
+                MessageBox.error("No se pudo actualizar: " + e.message);
+            } finally {
+                oView.setBusy(false);
+            }
+        },
+
+        // (Esta es la función para el botón "Cancelar" del pop-up)
+        onCancelUpdate: function () {
+            this.getView().getModel("updateModel").setData({}); 
+
+            this._getUpdateDialog().then(oDialog => {
+                oDialog.close();
+            });
+        },
+
+        // (Esta es una función "Helper" que carga el Fragmento XML)
+        _getUpdateDialog: function () {
+            if (!this._oUpdateDialog) {
+                this._oUpdateDialog = Fragment.load({
+                    id: this.getView().getId(),
+                    name: "com.itt.ztgruposet.frontendztgruposet.view.fragments.UpdateDialog",
+                    controller: this
+                }).then(oDialog => {
+                    this.getView().addDependent(oDialog);
+                    return oDialog;
+                });
+            }
+            return this._oUpdateDialog;
+        },
 
     onDeletePress: function () {
       const rec = this._getSelectedRecord();

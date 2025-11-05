@@ -5,6 +5,7 @@
   xmlns="sap.m"
   xmlns:tnt="sap.tnt"
   xmlns:p="sap.m.plugins"
+  xmlns:f="sap.ui.layout.form"
   height="100%">
 
   <Page id="page" title="{i18n>title}" >
@@ -93,5 +94,6 @@
         </items>
       </FlexBox>
     </content>
+    
   </Page>
 </mvc:View>
