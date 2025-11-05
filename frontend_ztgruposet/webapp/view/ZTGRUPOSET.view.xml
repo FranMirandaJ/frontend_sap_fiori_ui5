@@ -41,17 +41,17 @@
                      width="100%" class="sapUiSmallMarginTopBottom">
               <!-- Botones -->
               <HBox id="buttonsArea" class="sapUiSmallMarginBeginEnd">
-                <Button type="Accept" text="Crear" press="onCreatePress"
+                <Button id="btnCreate" type="Accept" text="Crear" press="onCreatePress"
                         class="sapUiTinyMarginEnd" icon="sap-icon://add"/>
-                <Button text="Editar" press="onEditPress"
+                <Button id="btnEdit" text="Editar" press="onEditPress"
                         class="sapUiTinyMarginEnd" icon="sap-icon://edit"/>
-                <Button type="Reject" text="Eliminar" press="onDeletePress"
+                <Button id="btnDelete" type="Reject" text="Eliminar" press="onDeletePress"
                         class="sapUiTinyMarginEnd" icon="sap-icon://delete"/>
-                <Button type="Critical" text="Desactivar" press="onDeactivePress"
+                <Button id="btnDeactivate" type="Critical" text="Desactivar" press="onDeactivePress"
                         class="sapUiTinyMarginEnd" icon="sap-icon://hide"/>
-                <Button type="Accept" text="Activar" press="onActivePress"
+                <Button id="btnActivate" type="Accept" text="Activar" press="onActivePress"
                         class="sapUiTinyMarginEnd" icon="sap-icon://show"/>
-                <Button text="Refrescar" press="onRefreshPress" class="sapUiTinyMarginBegin" icon="sap-icon://refresh"/>
+                <Button id="btnRefresh" text="Refrescar" press="onRefreshPress" class="sapUiTinyMarginBegin" icon="sap-icon://refresh"/>
               </HBox>
 
               <!-- Buscador -->
@@ -60,8 +60,7 @@
             </FlexBox>
 
             <!-- TABLA -->
-            <Table id="tblGrupos" inset="false" growing="true" growingScrollToLoad="true"
-                   items="{grupos>/items}">
+            <Table id="tblGrupos" inset="false" growing="true" growingScrollToLoad="true" items="{grupos>/items}"  mode="SingleSelectMaster" includeItemInSelection="true" selectionChange=".onSelectionChange" >
               <columns>
                 <Column width="12em"><Text text="Sociedad"/></Column>
                 <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Sucursal (CEDIS)"/></Column>
@@ -70,7 +69,7 @@
               </columns>
 
               <items>
-                <ColumnListItem vAlign="Middle">
+                <ColumnListItem vAlign="Middle" type="Active" press=".onRowPress">
                   <cells>
                     <Text text="{grupos>IDSOCIEDAD}"/>
                     <Text text="{grupos>IDCEDI}"/>
