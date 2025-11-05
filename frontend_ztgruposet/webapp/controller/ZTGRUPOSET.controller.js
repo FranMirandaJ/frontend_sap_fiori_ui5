@@ -6,9 +6,10 @@ sap.ui.define([
   "sap/m/Dialog",
   "sap/m/Button",
   "sap/m/library",
+  "sap/m/MessageBox",
   "sap/m/MessageToast",
   "sap/m/Text"
-], (Controller, JSONModel, Filter, FilterOperator, Dialog, Button, library, MessageToast, Text) => {
+], (Controller, JSONModel, Filter, FilterOperator, Dialog, Button, library,MessageBox, MessageToast, Text) => {
   "use strict";
 
   const ButtonType = library.ButtonType;
@@ -63,6 +64,121 @@ sap.ui.define([
         MessageToast.show("Error cargando datos: " + e.message);
       } finally {
         oView.setBusy(false);
+        this.onSelectionChange(); // deshabilita botones
+      }
+    },
+
+      onSelectionChange: function () {
+      const item = this.byId("tblGrupos").getSelectedItem();
+      const rec  = item ? item.getBindingContext("grupos").getObject() : null;
+
+      this.byId("btnEdit").setEnabled(!!rec);
+      this.byId("btnDelete").setEnabled(!!rec);
+      this.byId("btnDeactivate").setEnabled(!!rec && rec.ACTIVO === true);
+      this.byId("btnActivate").setEnabled(!!rec && rec.ACTIVO === false);
+    },
+
+    onRowPress: function (oEvent) {
+      const rec = oEvent.getSource().getBindingContext("grupos").getObject();
+      // abrir diálogo de edición, etc.
+    },
+
+        // === Helper: obtener el registro seleccionado de la tabla ===
+    _getSelectedRecord: function () {
+      const oTable = this.byId("tblGrupos");
+      const oItem = oTable.getSelectedItem();
+      if (!oItem) return null;
+      return oItem.getBindingContext("grupos").getObject();
+    },
+
+    // === Helper: construir el payload que espera tu API ===
+    _buildDeletePayload: function (rec) {
+      // El backend (en tu screenshot) espera exactamente estas claves:
+      return {
+        "IDSOCIEDAD": rec.IDSOCIEDAD,
+        "IDCEDI":     rec.IDCEDI,
+        "IDETIQUETA": rec.IDETIQUETA,
+        "IDVALOR":    rec.IDVALOR,
+        "IDGRUPOET":  rec.IDGRUPOET,
+        "ID":         rec.ID
+      };
+    },
+
+  // === Acción: DESACTIVAR (Delete lógico) ===
+    onDeactivePress: async function () {
+      const rec = this._getSelectedRecord();
+      if (!rec) {
+        MessageToast.show("Selecciona un registro primero.");
+        return;
+    }
+
+    const url = "/api/security/gruposet/crud?ProcessType=DeleteOne&DBServer=MongoDB&LoggedUser=FMIRANDAJ";
+    const payload = this._buildDeletePayload(rec);
+
+      const doCall = async () => {
+        this.getView().setBusy(true);
+        try {
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error("HTTP " + res.status);
+
+          // Éxito
+          MessageToast.show("Registro desactivado correctamente.");
+          await this._loadData(); // recarga la tabla
+        } catch (e) {
+          MessageBox.error("No se pudo desactivar: " + e.message);
+          // console.error(e); // si quieres ver detalle en consola
+        } finally {
+          this.getView().setBusy(false);
+        }
+      };
+
+    MessageBox.confirm(
+      `¿Desactivar el grupo "${rec.IDETIQUETA}" (ID ${rec.ID})?`,
+      {
+        title: "Confirmar desactivación",
+        actions: [MessageBox.Action.OK, MessageBox.Action.CANCEL],
+        onClose: (act) => { if (act === MessageBox.Action.OK) doCall(); }
+      }
+      );
+    },
+    //activar con updateOne ///////////
+
+    onActivePress: async function () {
+      const rec = this._getSelectedRecord();
+      if (!rec) { sap.m.MessageToast.show("Selecciona un registro."); return; }
+
+      const url = "/api/security/gruposet/crud?ProcessType=UpdateOne&DBServer=mongodb&LoggedUser=FMIRANDAJ";
+
+      // Llaves + campos a actualizar
+      const payload = {
+        ...this._buildDeletePayload(rec),   // IDSOCIEDAD, IDCEDI, IDETIQUETA, IDVALOR, IDGRUPOET, ID
+        data: {
+          ACTIVO: true,
+          BORRADO: false
+          // Puedes agregar auditoría si tu backend la usa:
+          // FECHAULTMOD: this._todayStr(), HORAULTMOD: this._timeStr(), USUARIOMOD: "FMIRANDAJ"
+        }
+      };
+
+      this.getView().setBusy(true);
+      try {
+        const res  = await fetch(url, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload) });
+        const json = await res.json().catch(()=>({}));
+        if (!res.ok) throw new Error("HTTP " + res.status + (json.messageUSR ? " - " + json.messageUSR : ""));
+
+        sap.m.MessageToast.show("Registro ACTIVADO.");
+        await this._loadData();
+        this.byId("tblGrupos").removeSelections(true);
+        this.onSelectionChange();
+      } catch (e) {
+        sap.m.MessageBox.error("No se pudo activar: " + e.message);
+      } finally {
+        this.getView().setBusy(false);
       }
     },
 
@@ -125,9 +241,49 @@ sap.ui.define([
       this.oDefaultDialog.open();
     },
 
-    onDeletePress() { MessageToast.show("Btn borrar presionado..."); },
-    onDeactivePress() { MessageToast.show("Btn desactivar presionado..."); },
-    onActivePress() { MessageToast.show("Btn activar presionado..."); },
+    onDeletePress: function () {
+      const rec = this._getSelectedRecord();
+      if (!rec) {
+        sap.m.MessageToast.show("Selecciona un registro primero.");
+        return;
+      }
+
+      // Usa el mismo casing que en GetAll: 'Mongodb' o 'MongoDB'
+      const url = "/api/security/gruposet/crud?ProcessType=DeleteHard&DBServer=Mongodb&LoggedUser=FMIRANDAJ";
+      const payload = this._buildDeletePayload(rec);
+
+      sap.m.MessageBox.warning(
+        `Vas a ELIMINAR físicamente el grupo "${rec.IDETIQUETA}" (ID ${rec.ID}).\nEsta acción no se puede deshacer.\n\n¿Continuar?`,
+        {
+          title: "Confirmar eliminación definitiva",
+          actions: [sap.m.MessageBox.Action.OK, sap.m.MessageBox.Action.CANCEL],
+          emphasizedAction: sap.m.MessageBox.Action.OK,
+          onClose: async (act) => {
+            if (act !== sap.m.MessageBox.Action.OK) return;
+
+            this.getView().setBusy(true);
+            try {
+              const res = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)          // ← si tu API acepta solo llaves, ver nota abajo
+              });
+              const json = await res.json().catch(()=>({}));
+              if (!res.ok) throw new Error("HTTP " + res.status + (json.messageUSR ? " - " + json.messageUSR : ""));
+
+              sap.m.MessageToast.show("Registro eliminado definitivamente.");
+              await this._loadData();
+              this.byId("tblGrupos").removeSelections(true);
+              this.onSelectionChange(); // deshabilita botones
+            } catch (e) {
+              sap.m.MessageBox.error("No se pudo eliminar: " + e.message);
+            } finally {
+              this.getView().setBusy(false);
+            }
+          }
+        }
+      );
+    },
 
     // ==== BUSCADOR (SearchField liveChange/search) ====
     onSearchPress(oEvent) {
