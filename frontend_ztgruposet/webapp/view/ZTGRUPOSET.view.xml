@@ -1,167 +1,98 @@
 <mvc:View
-	controllerName="com.itt.ztgruposet.frontendztgruposet.controller.ZTGRUPOSET"
-	xmlns:mvc="sap.ui.core.mvc"
-	xmlns:core="sap.ui.core"
-	xmlns="sap.m"
-	xmlns:tnt="sap.tnt"
-	xmlns:p="sap.m.plugins"
-	height="100%">
-	<Page id="page" title="{i18n>title}">
-		<content>
-			<FlexBox id="layoutFlexBox" height="100%" width="100%" renderType="Bare">
-				<items>
-					<!-- Menú de Navegación Lateral -->
-					<VBox id="vBoxSideNav" renderType="Bare" alignItems="Start">
-						<tnt:SideNavigation id="sideNavigation" selectedKey="walked"
-							expanded="false" itemSelect="onSideNavItemSelect">
-							<tnt:NavigationList id="navigationList1">
-								<tnt:NavigationListItem id="menuCollapseExpandButton" text=""
-									icon="sap-icon://menu2" press=".onCollapseExpandPress" />
-								<tnt:NavigationListItem id="homeButton" text="Home"
-									icon="sap-icon://home" />
-							</tnt:NavigationList>
+  controllerName="com.itt.ztgruposet.frontendztgruposet.controller.ZTGRUPOSET"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns:core="sap.ui.core"
+  xmlns="sap.m"
+  xmlns:tnt="sap.tnt"
+  xmlns:p="sap.m.plugins"
+  height="100%">
 
-							<tnt:fixedItem>
-								<tnt:NavigationList id="navigationListDB">
-									<tnt:NavigationListItem text="Database server"
-										icon="sap-icon://database"
-										selectable="false"
-									>
-										<tnt:NavigationListItem text="MongoDB" />
-										<tnt:NavigationListItem text="Azure Cosmos" />
-									</tnt:NavigationListItem>
-								</tnt:NavigationList>
-							</tnt:fixedItem>
+  <Page id="page" title="{i18n>title}" >
+    <content>
+      <FlexBox id="layoutFlexBox" height="100%" width="100%" renderType="Bare">
+        <items>
 
-						</tnt:SideNavigation>
-					</VBox>
+          <!-- Menú lateral -->
+          <VBox id="vBoxSideNav" renderType="Bare" alignItems="Start">
+            <tnt:SideNavigation id="sideNavigation" selectedKey="walked"
+                                expanded="false" itemSelect="onSideNavItemSelect">
+              <tnt:NavigationList id="navigationList1">
+                <tnt:NavigationListItem id="menuCollapseExpandButton" text=""
+                                        icon="sap-icon://menu2" press=".onCollapseExpandPress"/>
+                <tnt:NavigationListItem id="homeButton" text="Home" icon="sap-icon://home"/>
+              </tnt:NavigationList>
 
-					<!-- Contenido Principal de la Página -->
-					<VBox id="VBoxContent" width="100%" class="sapUiSmallMargin">
-						<Title id="titlePage" text="Grupos y subgrupos de SKU" titleStyle="H2" />
+              <tnt:fixedItem>
+                <tnt:NavigationList id="navigationListDB">
+                  <tnt:NavigationListItem text="Database server" icon="sap-icon://database" selectable="false">
+                    <tnt:NavigationListItem text="MongoDB"/>
+                    <tnt:NavigationListItem text="Azure Cosmos"/>
+                  </tnt:NavigationListItem>
+                </tnt:NavigationList>
+              </tnt:fixedItem>
+            </tnt:SideNavigation>
+          </VBox>
 
-						<FlexBox
-							height="50px"
-							alignItems="Center"
-							justifyContent="SpaceBetween"
-							width="100%"
-							class="sapUiSmallMarginTopBottom"
-						>
+          <!-- Contenido principal -->
+          <VBox id="VBoxContent" width="100%" class="sapUiSmallMargin">
+            <Title id="titlePage" text="Grupos y subgrupos de SKU" titleStyle="H2"/>
 
-							<!-- Botones a la izquierda -->
-							<HBox id="buttonsArea" class="sapUiSmallMarginBeginEnd">
-								<Button type="Accept"
-									text="Crear"
-									press="onCreatePress"
-									class="sapUiTinyMarginEnd"
-									icon="sap-icon://add"
-									ariaDescribedBy="acceptButtonDescription genericButtonDescription">
-								</Button>
-								<Button
-									text="Editar"
-									press="onEditPress"
-									class="sapUiTinyMarginEnd"
-									icon="sap-icon://edit"
-									ariaDescribedBy="defaultButtonDescription genericButtonDescription">
-								</Button>
-								<Button type="Reject"
-									text="Eliminar"
-									press="onDeletePress"
-									icon="sap-icon://delete"
-									class="sapUiTinyMarginEnd"
-									ariaDescribedBy="rejectButtonDescription genericButtonDescription">
-								</Button>
-								<Button type="Critical"
-									text="Desactivar"
-									press="onDeactivePress"
-									icon="sap-icon://hide"
-									class="sapUiTinyMarginEnd">
-								</Button>
-								<Button type="Accept"
-									text="Activar"
-									press="onActivePress"
-									icon="sap-icon://show"
-									class="sapUiTinyMarginEnd">
-								</Button>
-							</HBox>
+            <FlexBox height="50px" alignItems="Center" justifyContent="SpaceBetween"
+                     width="100%" class="sapUiSmallMarginTopBottom">
+              <!-- Botones -->
+              <HBox id="buttonsArea" class="sapUiSmallMarginBeginEnd">
+                <Button type="Accept" text="Crear" press="onCreatePress"
+                        class="sapUiTinyMarginEnd" icon="sap-icon://add"/>
+                <Button text="Editar" press="onEditPress"
+                        class="sapUiTinyMarginEnd" icon="sap-icon://edit"/>
+                <Button type="Reject" text="Eliminar" press="onDeletePress"
+                        class="sapUiTinyMarginEnd" icon="sap-icon://delete"/>
+                <Button type="Critical" text="Desactivar" press="onDeactivePress"
+                        class="sapUiTinyMarginEnd" icon="sap-icon://hide"/>
+                <Button type="Accept" text="Activar" press="onActivePress"
+                        class="sapUiTinyMarginEnd" icon="sap-icon://show"/>
+                <Button text="Refrescar" press="onRefreshPress" class="sapUiTinyMarginBegin" icon="sap-icon://refresh"/>
+              </HBox>
 
-							<!-- SearchField a la derecha -->
-							<SearchField width="300px" class="sapUiSmallMargin" search="onSearchPress"/>
+              <!-- Buscador -->
+              <SearchField width="300px" class="sapUiSmallMargin"
+                           search="onSearchPress" liveChange="onSearchPress"/>
+            </FlexBox>
 
-						</FlexBox>
+            <!-- TABLA -->
+            <Table id="tblGrupos" inset="false" growing="true" growingScrollToLoad="true"
+                   items="{grupos>/items}">
+              <columns>
+                <Column width="12em"><Text text="Sociedad"/></Column>
+                <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Sucursal (CEDIS)"/></Column>
+                <Column minScreenWidth="Desktop" demandPopin="true"><Text text="Etiqueta"/></Column>
+                <Column minScreenWidth="Desktop" demandPopin="true" hAlign="Center"><Text text="Estado"/></Column>
+              </columns>
 
-						<Table id="idProductsTable"
-							inset="false"
-							items="{
-								path: '/ProductCollection',
-								sorter: {
-									path: 'Name'
-								}
-							}"
-						>
-							<columns>
-								<Column
-									width="12em">
-									<Text text="Sociedad" />
-								</Column>
-								<Column
-									minScreenWidth="Tablet"
-									demandPopin="true">
-									<Text text="Sucursal (CEDIS)" />
-								</Column>
-								<Column
-									minScreenWidth="Desktop"
-									demandPopin="true"
-									hAlign="End">
-									<Text text="Etiqueta" />
-								</Column>
-								<Column
-									minScreenWidth="Desktop"
-									demandPopin="true"
-									hAlign="Center">
-									<Text text="Estado" />
-								</Column>
-							</columns>
-							<items>
-								<ColumnListItem vAlign="Middle">
-									<cells>
-										<ObjectIdentifier
-											title="{Name}"
-											text="{ProductId}" />
-										<Text
-											text="{SupplierName}" />
-										<Text
-											text="{Width} x {Depth} x {Height} {DimUnit}" />
-										<ObjectNumber
-											number="{WeightMeasure}"
-											unit="{WeightUnit}"
-											state="{
-							parts: [
-								{path: 'WeightMeasure'},
-								{path: 'WeightUnit'}
-							],
-							formatter: '.formatter.weightState'
-						}" />
-										<ObjectNumber
-											number="{
-							parts:[{path:'Price'},{path:'CurrencyCode'}],
-							type: 'sap.ui.model.type.Currency',
-							formatOptions: {showMeasure: false}
-						}"
-											unit="{CurrencyCode}" />
-									</cells>
-								</ColumnListItem>
-							</items>
-							<IllustratedMessage
-								id="noDataIllustration"
-								illustrationType="sapIllus-NoData"
-								title="No hay datos disponibles"
-								description="No se encontraron grupos. Crea uno nuevo para comenzar." />
-						</Table>
+              <items>
+                <ColumnListItem vAlign="Middle">
+                  <cells>
+                    <Text text="{grupos>IDSOCIEDAD}"/>
+                    <Text text="{grupos>IDCEDI}"/>
+                    <Text text="{grupos>IDETIQUETA}"/>
+                    <ObjectStatus text="{grupos>EstadoTxt}" state="{grupos>EstadoUI5}"/>
+                  </cells>
+                </ColumnListItem>
+              </items>
 
-					</VBox>
-				</items>
-			</FlexBox>
-		</content>
-	</Page>
+              <!-- Mensaje sin datos -->
+              <noData>
+                <IllustratedMessage
+                  id="noDataIllustration"
+                  illustrationType="sapIllus-NoData"
+                  title="No hay datos disponibles"
+                  description="No se encontraron grupos. Crea uno nuevo para comenzar."/>
+              </noData>
+            </Table>
+
+          </VBox>
+        </items>
+      </FlexBox>
+    </content>
+  </Page>
 </mvc:View>

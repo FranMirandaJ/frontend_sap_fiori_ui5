@@ -1,113 +1,153 @@
 sap.ui.define([
-    "sap/ui/core/mvc/Controller",
-    "sap/ui/model/json/JSONModel",
-    "sap/ui/core/IconPool",
-    "sap/m/Dialog",
-    "sap/m/Button",
-    "sap/m/library",
-    "sap/m/MessageToast",
-    "sap/m/Text"
-], (Controller, JSONModel, IconPool, Dialog, Button, library, MessageToast, Text) => {
-    "use strict";
+  "sap/ui/core/mvc/Controller",
+  "sap/ui/model/json/JSONModel",
+  "sap/ui/model/Filter",
+  "sap/ui/model/FilterOperator",
+  "sap/m/Dialog",
+  "sap/m/Button",
+  "sap/m/library",
+  "sap/m/MessageToast",
+  "sap/m/Text"
+], (Controller, JSONModel, Filter, FilterOperator, Dialog, Button, library, MessageToast, Text) => {
+  "use strict";
 
-    const ButtonType = library.ButtonType;
+  const ButtonType = library.ButtonType;
 
-    return Controller.extend("com.itt.ztgruposet.frontendztgruposet.controller.ZTGRUPOSET", {
+  return Controller.extend("com.itt.ztgruposet.frontendztgruposet.controller.ZTGRUPOSET", {
 
-        onInit() {
-        },
+    onInit() {
+      this._loadData(); // <- carga inicial
+    },
 
-        onCollapseExpandPress() {
-            const oSideNavigation = this.byId("sideNavigation"),
-                bExpanded = oSideNavigation.getExpanded();
+    // ==== CARGA DE DATOS DESDE CAP/CDS (POST) ====
+    _loadData: async function () {
+      const oView = this.getView();
+      oView.setBusy(true);
+      try {
+        // Usa el proxy del ui5.yaml: /api -> http://localhost:4004
+        const url = "/api/security/gruposet/crud?ProcessType=GetAll&DBServer=Mongodb&LoggedUser=FMIRANDAJ";
 
-            oSideNavigation.setExpanded(!bExpanded);
-        },
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" }
+          // body: JSON.stringify({}) // si tu endpoint lo requiere, descomenta
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
 
-        onSideNavItemSelect(oEvent) {
-            const oItem = oEvent.getParameter("item"),
-                sText = oItem.getText();
-            if (sText === "") return; // icono de las 3 barritas en sideNavigation
-            MessageToast.show(`Item selected: ${sText}`);
-        },
+        const json = await res.json();
 
-        // onCreatePress(oEvent){
-        //     MessageToast.show("Abriendo formulario de creación...");
-        // },
+        // Los registros vienen en data[0].dataRes
+        const items = (((json || {}).data || [])[0] || {}).dataRes || [];
 
-        onCreatePress: function () {
-            if (!this.oDefaultDialog) {
-                this.oDefaultDialog = new Dialog({
-                    title: "Agregar grupo de SKU",
-                    content: new Text({ text: "Form para crear un grupo" }),
-                    beginButton: new Button({
-                        type: ButtonType.Emphasized,
-                        text: "Guardar",
-                        press: function () {
-                            this.oDefaultDialog.close();
-                        }.bind(this)
-                    }),
-                    endButton: new Button({
-                        text: "Cancelar",
-                        press: function () {
-                            this.oDefaultDialog.close();
-                        }.bind(this)
-                    })
-                });
+        // Normaliza/deriva campos útiles para la UI
+        const normalized = items.map(x => ({
+          _id: x._id,
+          IDSOCIEDAD: x.IDSOCIEDAD,
+          IDCEDI: x.IDCEDI,
+          IDETIQUETA: x.IDETIQUETA,
+          IDVALOR: x.IDVALOR,
+          IDGRUPOET: x.IDGRUPOET,
+          ID: x.ID,
+          INFOAD: x.INFOAD,
+          FECHAREG: x.FECHAREG,
+          HORAREG: x.HORAREG,
+          USUARIOREG: x.USUARIOREG,
+          ACTIVO: x.ACTIVO,
+          BORRADO: x.BORRADO,
+          EstadoTxt: x.ACTIVO ? "ACTIVO" : "INACTIVO",
+          EstadoUI5: x.ACTIVO ? "Success" : "Error"
+        }));
 
-                // to get access to the controller's model
-                this.getView().addDependent(this.oDefaultDialog);
-            }
+        this.getView().setModel(new JSONModel({ items: normalized }), "grupos");
+      } catch (e) {
+        MessageToast.show("Error cargando datos: " + e.message);
+      } finally {
+        oView.setBusy(false);
+      }
+    },
 
-            this.oDefaultDialog.open();
-        },
+    onRefreshPress() {
+      this._loadData();
+    },
 
-        // onEditPress(oEvent) {
-        //     MessageToast.show("Abriendo formulario de edición...");
-        // },
+    // ==== UI LAYOUT ====
+    onCollapseExpandPress() {
+      const oSideNavigation = this.byId("sideNavigation"),
+        bExpanded = oSideNavigation.getExpanded();
+      oSideNavigation.setExpanded(!bExpanded);
+    },
 
-        onEditPress: function () {
-            if (!this.oDefaultDialog) {
-                this.oDefaultDialog = new Dialog({
-                    title: "Editar grupo de SKU",
-                    content: new Text({ text: "Form para editar un grupo" }),
-                    beginButton: new Button({
-                        type: ButtonType.Emphasized,
-                        text: "Guardar",
-                        press: function () {
-                            this.oDefaultDialog.close();
-                        }.bind(this)
-                    }),
-                    endButton: new Button({
-                        text: "Cancelar",
-                        press: function () {
-                            this.oDefaultDialog.close();
-                        }.bind(this)
-                    })
-                });
+    onSideNavItemSelect(oEvent) {
+      const oItem = oEvent.getParameter("item"),
+        sText = oItem.getText();
+      if (sText === "") return;
+      MessageToast.show(`Item selected: ${sText}`);
+    },
 
-                // to get access to the controller's model
-                this.getView().addDependent(this.oDefaultDialog);
-            }
+    // ==== ACCIONES (crear/editar) – placeholders ====
+    onCreatePress: function () {
+      if (!this.oDefaultDialog) {
+        this.oDefaultDialog = new Dialog({
+          title: "Agregar grupo de SKU",
+          content: new Text({ text: "Form para crear un grupo" }),
+          beginButton: new Button({
+            type: ButtonType.Emphasized,
+            text: "Guardar",
+            press: function () { this.oDefaultDialog.close(); }.bind(this)
+          }),
+          endButton: new Button({
+            text: "Cancelar",
+            press: function () { this.oDefaultDialog.close(); }.bind(this)
+          })
+        });
+        this.getView().addDependent(this.oDefaultDialog);
+      }
+      this.oDefaultDialog.open();
+    },
 
-            this.oDefaultDialog.open();
-        },
+    onEditPress: function () {
+      if (!this.oDefaultDialog) {
+        this.oDefaultDialog = new Dialog({
+          title: "Editar grupo de SKU",
+          content: new Text({ text: "Form para editar un grupo" }),
+          beginButton: new Button({
+            type: ButtonType.Emphasized,
+            text: "Guardar",
+            press: function () { this.oDefaultDialog.close(); }.bind(this)
+          }),
+          endButton: new Button({
+            text: "Cancelar",
+            press: function () { this.oDefaultDialog.close(); }.bind(this)
+          })
+        });
+        this.getView().addDependent(this.oDefaultDialog);
+      }
+      this.oDefaultDialog.open();
+    },
 
-        onDeletePress(oEvent) {
-            MessageToast.show("Btn borrar presionado...");
-        },
+    onDeletePress() { MessageToast.show("Btn borrar presionado..."); },
+    onDeactivePress() { MessageToast.show("Btn desactivar presionado..."); },
+    onActivePress() { MessageToast.show("Btn activar presionado..."); },
 
-        onDeactivePress(oEvent) {
-            MessageToast.show("Btn desactivar presionado...");
-        },
+    // ==== BUSCADOR (SearchField liveChange/search) ====
+    onSearchPress(oEvent) {
+      const sQuery = oEvent.getParameter("query") || oEvent.getSource().getValue();
+      const oBinding = this.byId("tblGrupos").getBinding("items");
+      if (!oBinding) return;
 
-        onActivePress(oEvent) {
-            MessageToast.show("Btn activar presionado...");
-        },
+      if (!sQuery) { oBinding.filter([]); return; }
 
-        onSearchPress(oEvent) {
-            MessageToast.show(`Buscando la palabra "${oEvent.getSource().getValue()}" ...`);
-        },
+      const aFilters = [
+        new Filter("IDETIQUETA", FilterOperator.Contains, sQuery),
+        new Filter("IDVALOR",   FilterOperator.Contains, sQuery),
+        new Filter("IDSOCIEDAD",FilterOperator.Contains, sQuery),
+        new Filter("IDCEDI",    FilterOperator.Contains, sQuery),
+        new Filter("INFOAD",    FilterOperator.Contains, sQuery),
+        new Filter("ID",        FilterOperator.Contains, sQuery)
+      ];
 
-    });
+      oBinding.filter(new Filter({ filters: aFilters, and: false }));
+    }
+
+  });
 });

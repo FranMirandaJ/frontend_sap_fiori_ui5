@@ -11,7 +11,8 @@
   "devDependencies": {
     "@sap/ux-specification": "^1.136.9",
     "@sap/ux-ui5-tooling": "1",
-    "@ui5/cli": "^4.0.16"
+    "@ui5/cli": "^4.0.16",
+    "ui5-middleware-simpleproxy": "^3.5.2"
   },
   "scripts": {
     "start": "fiori run --open \"test/flp.html#app-preview\"",
