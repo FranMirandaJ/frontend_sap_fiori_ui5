@@ -20,6 +20,7 @@ sap.ui.define([
     onInit() {
       this._loadData(); // <- carga inicial
       this.getView().setModel(new JSONModel({}), "updateModel");// modelo para operaciones de update/create
+      this.getView().setModel(new JSONModel({}), "createModel");    
     },
 
     // ==== CARGA DE DATOS DESDE CAP/CDS (POST) ====
@@ -28,7 +29,7 @@ sap.ui.define([
       oView.setBusy(true);
       try {
         // Usa el proxy del ui5.yaml: /api -> http://localhost:4004
-        const url = "/api/security/gruposet/crud?ProcessType=GetAll&DBServer=Mongodb&LoggedUser=FMIRANDAJ";
+        const url = "/api/security/gruposet/crud?ProcessType=GetAll&DBServer=Mongodb&LoggedUser=PMORALESP";
 
         const res = await fetch(url, {
           method: "POST",
@@ -203,25 +204,84 @@ sap.ui.define([
     },
 
     // ==== ACCIONES (crear/editar) – placeholders ====
-    onCreatePress: function () {
-      if (!this.oDefaultDialog) {
-        this.oDefaultDialog = new Dialog({
-          title: "Agregar grupo de SKU",
-          content: new Text({ text: "Form para crear un grupo" }),
-          beginButton: new Button({
-            type: ButtonType.Emphasized,
-            text: "Guardar",
-            press: function () { this.oDefaultDialog.close(); }.bind(this)
-          }),
-          endButton: new Button({
-            text: "Cancelar",
-            press: function () { this.oDefaultDialog.close(); }.bind(this)
-          })
-        });
-        this.getView().addDependent(this.oDefaultDialog);
-      }
-      this.oDefaultDialog.open();
+    onCreatePress: async function () {
+      MessageToast.show("hola");
+     const oCreateModel = this.getView().getModel("createModel");
+      
+                // 2. Abre el Fragmento (el pop-up)
+                this._getCreateDialog().then(oDialog => {
+                    oDialog.open();
+                });
     },
+
+    onSaveCreate: async function () {
+      
+     const oCreateModel = this.getView().getModel("createModel");
+     const oCreate = oCreateModel.getData(); // Datos del formulario
+    
+        MessageToast.show(`kiubo ${oCreate.IDSOCIEDAD}`);
+    try {
+        const payload = {
+                IDSOCIEDAD: oCreate.IDSOCIEDAD,
+                IDCEDI: oCreate.IDCEDI,
+                IDETIQUETA: oCreate.IDETIQUETA,
+                IDVALOR: oCreate.IDVALOR,
+                IDGRUPOET: oCreate.IDGRUPOET,
+                ID:oCreate.ID,
+                INFOAD: oCreate.INFOAD,
+                ACTIVO: true,
+                BORRADO:false 
+        };
+
+        const res = await fetch("/api/security/gruposet/crud?ProcessType=Create&DBServer=mongodb&LoggedUser=PMORALESPA", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        const json = await res.json();
+
+        if (!res.ok || json.error) {
+            MessageBox.error(json.error || "No se pudo crear el registro.");
+            return;
+        }
+
+        MessageToast.show("Grupo creado correctamente.");
+         this._getCreateDialog().then(oDialog => {
+                  oDialog.close();
+              });
+        await this._loadData();
+
+    } catch (error) {
+        console.error("Error al crear el grupo:", error);
+        MessageBox.error("Error inesperado al crear el grupo.");
+    }
+},
+
+    
+        // (Esta es la función para el botón "Cancelar" del pop-up)
+      onCancelCreate: function () {
+         this.getView().getModel("createModel").setData({}); 
+
+              this._getCreateDialog().then(oDialog => {
+                  oDialog.close();
+              });
+          },
+
+            _getCreateDialog: function () {
+            if (!this._oCreateDialog) {
+                this._oCreateDialog = Fragment.load({
+                    id: this.getView().getId(),
+                    name: "com.itt.ztgruposet.frontendztgruposet.view.fragments.CreateDialog",
+                    controller: this
+                }).then(oDialog => {
+                    this.getView().addDependent(oDialog);
+                    return oDialog;
+                });
+            }
+            return this._oCreateDialog;
+        },
+
 
     onEditPress: function () {
                 const oRec = this._getSelectedRecord(); // Usa la función de tu compañero
