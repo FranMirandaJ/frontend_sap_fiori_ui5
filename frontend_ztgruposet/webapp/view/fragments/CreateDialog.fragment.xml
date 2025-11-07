@@ -1,0 +1,49 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:f="sap.ui.layout.form"
+>
+    <Dialog id="createDialog" title="Registro">
+        <content>
+            <f:SimpleForm
+                editable="true"
+                layout="ResponsiveGridLayout"
+            >
+                <f:content>
+                    <Label text="Sociedad" />
+                    <Input value="{createModel>/IDSOCIEDAD}" editable="true" />
+
+                    <Label text="CEDI" />
+                    <Input value="{createModel>/IDCEDI}" editable="true" />
+
+                    <Label text="Etiqueta" />
+                    <Input value="{createModel>/IDETIQUETA}" editable="true" />
+
+                    <Label text="Valor" />
+                    <Input value="{createModel>/IDVALOR}" editable="true" />
+
+                    <Label text="Grupo ET" />
+                    <Input value="{createModel>/IDGRUPOET}" editable="true" />
+
+                    <Label text="ID" />
+                    <Input value="{createModel>/ID}" editable="true" />
+
+                    <Label text="Información Adicional" required="true" />
+<TextArea 
+    value="{createModel>/INFOAD}" 
+    editable="true" 
+    rows="4" 
+    width="100%" 
+/>
+
+                </f:content>
+            </f:SimpleForm>
+        </content>
+        <beginButton>
+            <Button text="Guardar Cambios" type="Emphasized" press="onSaveCreate" />
+        </beginButton>
+        <endButton>
+            <Button text="Cancelar" press="onCancelCreate" />
+        </endButton>
+    </Dialog>
+</core:FragmentDefinition>
