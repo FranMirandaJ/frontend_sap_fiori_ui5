@@ -164,13 +164,21 @@
                 />
               </HBox>
               <!-- BUSCADOR -->
-              <SearchField
-                width="250px"
-                class="sapUiSmallMarginBegin"
-                search="onSearchPress"
-                liveChange="onSearchPress"
-                placeholder="Buscar..."
-              />
+              <HBox alignItems="Center" class="sapUiSmallMarginBegin">
+                <SearchField
+                  id="searchField"
+                  width="250px"
+                  search=".onSearch"
+                  liveChange=".onSearch"
+                  placeholder="Buscar..."
+                />
+                <Button
+                  icon="sap-icon://filter"
+                  press=".onFilterPress"
+                  tooltip="Filtros avanzados"
+                  class="sapUiTinyMarginBegin"
+                />
+              </HBox>
             </HBox>
             <!-- TABLA -->
             <Table
