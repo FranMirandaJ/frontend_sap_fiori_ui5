@@ -17,6 +17,20 @@ sap.ui.define([
 
   return Controller.extend("com.itt.ztgruposet.frontendztgruposet.controller.ZTGRUPOSET", {
 
+    formatter: {
+      truncateInfoAd: function (sInfo) {
+        if (!sInfo) {
+          return "";
+        }
+        const aWords = sInfo.split(" ");
+        if (aWords.length > 3) {
+          return aWords.slice(0, 3).join(" ") + "...";
+        }
+        return sInfo;
+      }
+    },
+
+
     onAvatarPressed: function () {
 			MessageToast.show("Avatar pressed!");
 		},
@@ -30,8 +44,47 @@ sap.ui.define([
       this.getView().setModel(new JSONModel({}), "updateModel");// modelo para operaciones de update/create
       this.getView().setModel(new JSONModel({}), "createModel");
       this.getView().setModel(new JSONModel({ state: false }), "dbServerSwitch"); // contenido del dbServerSwitch
+      this.getView().setModel(new JSONModel({ text: "" }), "infoAd"); // Modelo para el popover de Info Adicional
+      this._initFilterModel(); // Modelo para el diálogo de filtros
+
+      // Propiedades para la paginación personalizada
+      this._aAllItems = [];
+      this._aFilteredItems = []; // Items después de filtrar/ordenar
+      this._iCurrentPage = 1;
+      this._iPageSize = 5;
     },
     
+    _initFilterModel: function() {
+      const oFilterModel = new JSONModel({
+        searchQuery: "",
+        fields: [
+          { key: "IDSOCIEDAD", text: "Sociedad" },
+          { key: "IDCEDI", text: "Sucursal (CEDIS)" },
+          { key: "IDETIQUETA", text: "Etiqueta" },
+          { key: "IDVALOR", text: "Valor" },
+          { key: "IDGRUPOET", text: "Grupo Etiqueta" },
+          { key: "ID", text: "ID" }
+        ],
+        selectedField: "IDETIQUETA", // Campo por defecto para buscar
+        selectedFieldIndex: 2, // Índice de "IDETIQUETA"
+        sort: {
+          fields: [
+            { key: "ID", text: "ID" },
+            { key: "IDSOCIEDAD", text: "Sociedad" },
+            { key: "IDCEDI", text: "Sucursal (CEDIS)" },
+            { key: "IDETIQUETA", text: "Etiqueta" },
+            { key: "IDGRUPOET", text: "Grupo Etiqueta" },
+            { key: "FECHAREG", text: "Fecha de Registro" },
+            { key: "FECHAULTMOD", text: "Fecha Última Modificación" },
+            { key: "ACTIVO", text: "Estado" }
+          ],
+          selectedField: "ID", // Campo por defecto para ordenar
+          direction: "ASC"
+        }
+      });
+      this.getView().setModel(oFilterModel, "filter");
+    },
+
     // ==== CARGA DE DATOS DESDE CAP/CDS (POST) ====
     _loadData: async function () {
       const oView = this.getView();
@@ -65,18 +118,29 @@ sap.ui.define([
           FECHAREG: x.FECHAREG,
           HORAREG: x.HORAREG,
           USUARIOREG: x.USUARIOREG,
+          FECHAULTMOD: x.FECHAULTMOD,
+          HORAULTMOD: x.HORAULTMOD,
+          USUARIOMOD: x.USUARIOMOD,
           ACTIVO: x.ACTIVO,
           BORRADO: x.BORRADO,
-          EstadoTxt: x.ACTIVO ? "ACTIVO" : "INACTIVO",
-          EstadoUI5: x.ACTIVO ? "Success" : "Error"
+          EstadoTxt: x.ACTIVO ? "ACTIVO" : "INACTIVO",          
+          EstadoUI5: x.ACTIVO ? "Success" : "Error",
+          EstadoIcon: x.ACTIVO ? "sap-icon://sys-enter-2" : "sap-icon://status-negative",
+          EstadoIconColor: x.ACTIVO ? "Positive" : "Negative",
+          RegistroCompleto: `${x.FECHAREG || ''} ${x.HORAREG || ''} (${x.USUARIOREG || 'N/A'})`,
+          ModificacionCompleta: x.FECHAULTMOD ? `${x.FECHAULTMOD} ${x.HORAULTMOD} (${x.USUARIOMOD || 'N/A'})` : 'Sin modificaciones'
         }));
 
-        this.getView().setModel(new JSONModel({ items: normalized }), "grupos");
+        // Guardamos todos los items y configuramos la paginación inicial
+        this._aAllItems = normalized;
+        this.getView().setModel(new JSONModel(), "grupos"); // Creamos el modelo vacío
+        this._applyFiltersAndSort(); // Aplicamos filtros/orden por defecto y mostramos la primera página
+
       } catch (e) {
         MessageToast.show("Error cargando datos: " + e.message);
       } finally {
         oView.setBusy(false);
-        this.onSelectionChange(); // deshabilita botones
+        this.onSelectionChange(); // deshabilita botones de acción
       }
     },
 
@@ -445,25 +509,181 @@ sap.ui.define([
       );
     },
 
-    // ==== BUSCADOR (SearchField liveChange/search) ====
-    onSearchPress(oEvent) {
-      const sQuery = oEvent.getParameter("query") || oEvent.getSource().getValue();
-      const oBinding = this.byId("tblGrupos").getBinding("items");
-      if (!oBinding) return;
+    // ==== LÓGICA DE FILTRADO Y BÚSQUEDA ====
+    onSearch: function(oEvent) {
+      const sQuery = oEvent.getParameter("query");
+      this.getView().getModel("filter").setProperty("/searchQuery", sQuery);
+      this._applyFiltersAndSort();
+    },
 
-      if (!sQuery) { oBinding.filter([]); return; }
+    onFilterPress: function() {
+      this._getFilterDialog().then(oDialog => oDialog.open());
+    },
 
-      const aFilters = [
-        new Filter("IDETIQUETA", FilterOperator.Contains, sQuery),
-        new Filter("IDVALOR",   FilterOperator.Contains, sQuery),
-        new Filter("IDSOCIEDAD",FilterOperator.Contains, sQuery),
-        new Filter("IDCEDI",    FilterOperator.Contains, sQuery),
-        new Filter("INFOAD",    FilterOperator.Contains, sQuery),
-        new Filter("ID",        FilterOperator.Contains, sQuery)
-      ];
+    _getFilterDialog: function() {
+      if (!this._oFilterDialog) {
+        this._oFilterDialog = Fragment.load({
+          id: this.getView().getId(),
+          name: "com.itt.ztgruposet.frontendztgruposet.view.fragments.FilterDialog",
+          controller: this
+        }).then(oDialog => {
+          // --- INICIO: Lógica para poblar los RadioButtons ---
+          const oFilterModel = this.getView().getModel("filter");
+          const aFields = oFilterModel.getProperty("/fields");
+          const iSelectedIndex = oFilterModel.getProperty("/selectedFieldIndex");
+          const oRadioGroup = this.byId("searchFieldGroup");
 
-      oBinding.filter(new Filter({ filters: aFilters, and: false }));
+          oRadioGroup.destroyButtons(); // Limpiamos por si acaso
+
+          aFields.forEach(oField => {
+            oRadioGroup.addButton(new sap.m.RadioButton({ text: oField.text }));
+          });
+
+          oRadioGroup.setSelectedIndex(iSelectedIndex);
+          // --- FIN: Lógica para poblar los RadioButtons ---
+
+          this.getView().addDependent(oDialog);
+          return oDialog;
+        });
+      }
+      return this._oFilterDialog;
+    },
+
+    onApplyFilters: function() {
+      this._applyFiltersAndSort();
+      this._getFilterDialog().then(oDialog => oDialog.close());
+    },
+
+    onCancelFilters: function() {
+      // Opcional: podrías resetear el modelo a su estado anterior si lo guardaste al abrir.
+      this._getFilterDialog().then(oDialog => oDialog.close());
+    },
+
+    onResetFilters: function() {
+      this._initFilterModel(); // Restaura el modelo a su estado inicial
+      this.byId("searchField").setValue(""); // Limpia el campo de búsqueda visualmente
+      this._applyFiltersAndSort();
+      this._getFilterDialog().then(oDialog => oDialog.close());
+    },
+
+    onFilterFieldSelect: function(oEvent) {
+      const iSelectedIndex = oEvent.getParameter("selectedIndex");
+      const oFilterModel = this.getView().getModel("filter");
+      const sSelectedKey = oFilterModel.getProperty(`/fields/${iSelectedIndex}/key`);
+      oFilterModel.setProperty("/selectedField", sSelectedKey);
+    },
+
+    _applyFiltersAndSort: function() {
+      const oFilterData = this.getView().getModel("filter").getData();
+      const sQuery = oFilterData.searchQuery.toLowerCase();
+      let aFiltered = [...this._aAllItems];
+
+      // 1. Aplicar filtro de búsqueda
+      if (sQuery) {
+        const sSelectedField = oFilterData.selectedField;
+        aFiltered = aFiltered.filter(item => {
+          return item[sSelectedField] && item[sSelectedField].toString().toLowerCase().includes(sQuery);
+        });
+      }
+
+      // 2. Aplicar ordenamiento
+      const oSortInfo = oFilterData.sort;
+      const sSortField = oSortInfo.selectedField;
+
+      aFiltered.sort((a, b) => {
+        let valA = a[sSortField];
+        let valB = b[sSortField];
+
+        // Manejo para fechas
+        if (sSortField === "FECHAREG" && a.FECHAREG) {
+          valA = new Date(a.FECHAREG + "T" + a.HORAREG);
+        }
+        if (sSortField === "FECHAREG" && b.FECHAREG) {
+          valB = new Date(b.FECHAREG + "T" + b.HORAREG);
+        }
+        if (sSortField === "FECHAULTMOD" && a.FECHAULTMOD) {
+          valA = new Date(a.FECHAULTMOD + "T" + a.HORAULTMOD);
+        }
+        if (sSortField === "FECHAULTMOD" && b.FECHAULTMOD) {
+          valB = new Date(b.FECHAULTMOD + "T" + b.HORAULTMOD);
+        }
+
+        let comparison = 0;
+        if (valA > valB) {
+          comparison = 1;
+        } else if (valA < valB) {
+          comparison = -1;
+        }
+
+        return (oSortInfo.direction === "DESC") ? (comparison * -1) : comparison;
+      });
+
+      // 3. Actualizar datos para paginación
+      this._aFilteredItems = aFiltered;
+      this._iCurrentPage = 1; // Siempre volver a la primera página después de filtrar
+      this._updateTablePage();
+    },
+  
+    // ==== Popover para Información Adicional ====
+    _getInfoAdPopover: function () {
+      if (!this._oInfoAdPopover) {
+        this._oInfoAdPopover = Fragment.load({
+          id: this.getView().getId(),
+          name: "com.itt.ztgruposet.frontendztgruposet.view.fragments.InfoAdPopover",
+          controller: this
+        }).then(oPopover => {
+          this.getView().addDependent(oPopover);
+          return oPopover;
+        });
+      }
+      return this._oInfoAdPopover;
+    },
+
+    onInfoAdPress: function(oEvent) {
+      const oControl = oEvent.getSource();
+      const oContext = oControl.getBindingContext("grupos");
+      const sInfoCompleta = oContext.getProperty("INFOAD");
+      this.getView().getModel("infoAd").setProperty("/text", sInfoCompleta);
+      this._getInfoAdPopover().then(oPopover => oPopover.openBy(oControl));
+    },
+
+    // ==== LÓGICA DE PAGINACIÓN PERSONALIZADA ====
+    onNavPage: function (oEvent) {
+      const sNavDirection = oEvent.getSource().getIcon().includes("right") ? "next" : "prev";
+
+      if (sNavDirection === "next") {
+        this._iCurrentPage++;
+      } else {
+        this._iCurrentPage--;
+      }
+
+      this._updateTablePage();
+    },
+
+    _updateTablePage: function () {
+      const oView = this.getView();
+      const iTotalItems = this._aFilteredItems.length;
+      const iTotalPages = Math.ceil(iTotalItems / this._iPageSize);
+
+      // Asegurarse de que la página actual esté dentro de los límites
+      this._iCurrentPage = iTotalPages === 0 ? 1 : Math.max(1, Math.min(this._iCurrentPage, iTotalPages));
+
+      const iStartIndex = (this._iCurrentPage - 1) * this._iPageSize;
+      const iEndIndex = iStartIndex + this._iPageSize;
+      const aPageItems = this._aFilteredItems.slice(iStartIndex, iEndIndex);
+
+      // Actualizar el modelo de la tabla con solo los registros de la página actual
+      oView.getModel("grupos").setData({ items: aPageItems });
+
+      // Actualizar estado de los botones y texto informativo
+      oView.byId("btnPrevPage").setEnabled(this._iCurrentPage > 1);
+      oView.byId("btnNextPage").setEnabled(this._iCurrentPage < iTotalPages);
+
+      if (iTotalItems > 0) {
+        oView.byId("txtPageInfo").setText(`Mostrando ${iStartIndex + 1} - ${Math.min(iEndIndex, iTotalItems)} de ${iTotalItems}`);
+      } else {
+        oView.byId("txtPageInfo").setText("No hay registros");
+      }
     }
-
   });
 });
