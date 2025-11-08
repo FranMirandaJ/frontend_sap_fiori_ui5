@@ -45,6 +45,11 @@ sap.ui.define([
       this.getView().setModel(new JSONModel({}), "createModel");
       this.getView().setModel(new JSONModel({ state: false }), "dbServerSwitch"); // contenido del dbServerSwitch
       this.getView().setModel(new JSONModel({ text: "" }), "infoAd"); // Modelo para el popover de Info Adicional
+
+      // Propiedades para la paginación personalizada
+      this._aAllItems = [];
+      this._iCurrentPage = 1;
+      this._iPageSize = 5;
     },
     
     // ==== CARGA DE DATOS DESDE CAP/CDS (POST) ====
@@ -93,12 +98,17 @@ sap.ui.define([
           ModificacionCompleta: x.FECHAULTMOD ? `${x.FECHAULTMOD} ${x.HORAULTMOD} (${x.USUARIOMOD || 'N/A'})` : 'Sin modificaciones'
         }));
 
-        this.getView().setModel(new JSONModel({ items: normalized }), "grupos");
+        // Guardamos todos los items y configuramos la paginación inicial
+        this._aAllItems = normalized;
+        this._iCurrentPage = 1;
+        this.getView().setModel(new JSONModel(), "grupos"); // Creamos el modelo vacío
+        this._updateTablePage(); // Mostramos la primera página
+
       } catch (e) {
         MessageToast.show("Error cargando datos: " + e.message);
       } finally {
         oView.setBusy(false);
-        this.onSelectionChange(); // deshabilita botones
+        this.onSelectionChange(); // deshabilita botones de acción
       }
     },
 
@@ -508,6 +518,45 @@ sap.ui.define([
       const sInfoCompleta = oContext.getProperty("INFOAD");
       this.getView().getModel("infoAd").setProperty("/text", sInfoCompleta);
       this._getInfoAdPopover().then(oPopover => oPopover.openBy(oControl));
+    },
+
+    // ==== LÓGICA DE PAGINACIÓN PERSONALIZADA ====
+    onNavPage: function (oEvent) {
+      const sNavDirection = oEvent.getSource().getIcon().includes("right") ? "next" : "prev";
+
+      if (sNavDirection === "next") {
+        this._iCurrentPage++;
+      } else {
+        this._iCurrentPage--;
+      }
+
+      this._updateTablePage();
+    },
+
+    _updateTablePage: function () {
+      const oView = this.getView();
+      const iTotalItems = this._aAllItems.length;
+      const iTotalPages = Math.ceil(iTotalItems / this._iPageSize);
+
+      // Asegurarse de que la página actual esté dentro de los límites
+      this._iCurrentPage = Math.max(1, Math.min(this._iCurrentPage, iTotalPages));
+
+      const iStartIndex = (this._iCurrentPage - 1) * this._iPageSize;
+      const iEndIndex = iStartIndex + this._iPageSize;
+      const aPageItems = this._aAllItems.slice(iStartIndex, iEndIndex);
+
+      // Actualizar el modelo de la tabla con solo los registros de la página actual
+      oView.getModel("grupos").setData({ items: aPageItems });
+
+      // Actualizar estado de los botones y texto informativo
+      oView.byId("btnPrevPage").setEnabled(this._iCurrentPage > 1);
+      oView.byId("btnNextPage").setEnabled(this._iCurrentPage < iTotalPages);
+
+      if (iTotalItems > 0) {
+        oView.byId("txtPageInfo").setText(`Mostrando ${iStartIndex + 1} - ${Math.min(iEndIndex, iTotalItems)} de ${iTotalItems}`);
+      } else {
+        oView.byId("txtPageInfo").setText("No hay registros");
+      }
     }
   });
 });

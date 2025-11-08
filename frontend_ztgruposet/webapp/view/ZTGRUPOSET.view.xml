@@ -176,8 +176,6 @@
             <Table
               id="tblGrupos"
               inset="false"
-              growing="true"
-              growingScrollToLoad="true"
               items="{grupos>/items}"
               mode="SingleSelectMaster"
               includeItemInSelection="true"
@@ -282,6 +280,26 @@
                 />
               </noData>
             </Table>
+            <!-- PAGINACIÓN PERSONALIZADA (FUERA DE LA TABLA) -->
+            <Toolbar>
+              <ToolbarSpacer />
+              <Button
+                id="btnPrevPage"
+                icon="sap-icon://navigation-left-arrow"
+                press=".onNavPage"
+                tooltip="Página anterior"
+              />
+              <Text
+                id="txtPageInfo"
+                class="sapUiTinyMarginBeginEnd"
+              />
+              <Button
+                id="btnNextPage"
+                icon="sap-icon://navigation-right-arrow"
+                press=".onNavPage"
+                tooltip="Página siguiente"
+              />
+            </Toolbar>
           </VBox>
         </ScrollContainer>
       </tnt:mainContents>
