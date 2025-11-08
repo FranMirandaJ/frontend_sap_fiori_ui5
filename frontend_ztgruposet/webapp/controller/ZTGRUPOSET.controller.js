@@ -65,10 +65,17 @@ sap.ui.define([
           FECHAREG: x.FECHAREG,
           HORAREG: x.HORAREG,
           USUARIOREG: x.USUARIOREG,
+          FECHAULTMOD: x.FECHAULTMOD,
+          HORAULTMOD: x.HORAULTMOD,
+          USUARIOMOD: x.USUARIOMOD,
           ACTIVO: x.ACTIVO,
           BORRADO: x.BORRADO,
-          EstadoTxt: x.ACTIVO ? "ACTIVO" : "INACTIVO",
-          EstadoUI5: x.ACTIVO ? "Success" : "Error"
+          EstadoTxt: x.ACTIVO ? "ACTIVO" : "INACTIVO",          
+          EstadoUI5: x.ACTIVO ? "Success" : "Error",
+          EstadoIcon: x.ACTIVO ? "sap-icon://sys-enter-2" : "sap-icon://status-negative",
+          EstadoIconColor: x.ACTIVO ? "Positive" : "Negative",
+          RegistroCompleto: `${x.FECHAREG || ''} ${x.HORAREG || ''} (${x.USUARIOREG || 'N/A'})`,
+          ModificacionCompleta: x.FECHAULTMOD ? `${x.FECHAULTMOD} ${x.HORAULTMOD} (${x.USUARIOMOD || 'N/A'})` : 'Sin modificaciones'
         }));
 
         this.getView().setModel(new JSONModel({ items: normalized }), "grupos");

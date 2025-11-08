@@ -2,6 +2,7 @@
   controllerName="com.itt.ztgruposet.frontendztgruposet.controller.ZTGRUPOSET"
   xmlns:mvc="sap.ui.core.mvc"
   xmlns="sap.m"
+  xmlns:core="sap.ui.core"
   xmlns:tnt="sap.tnt"
   height="100%"
 >
@@ -201,6 +202,42 @@
                 <Column
                   minScreenWidth="Desktop"
                   demandPopin="true"
+                >
+                  <Text text="Valor" />
+                </Column>
+                <Column
+                  minScreenWidth="Desktop"
+                  demandPopin="true"
+                >
+                  <Text text="Grupo Etiqueta" />
+                </Column>
+                <Column
+                  minScreenWidth="Desktop"
+                  demandPopin="true"
+                >
+                  <Text text="ID" />
+                </Column>
+                <Column
+                  minScreenWidth="Desktop"
+                  demandPopin="true"
+                >
+                  <Text text="Información adicional" />
+                </Column>
+                <Column
+                  minScreenWidth="Desktop"
+                  demandPopin="true"
+                >
+                  <Text text="Registro" />
+                </Column>
+                <Column
+                  minScreenWidth="Desktop"
+                  demandPopin="true"
+                >
+                  <Text text="Modificación" />
+                </Column>
+                <Column
+                  minScreenWidth="Desktop"
+                  demandPopin="true"
                   hAlign="Center"
                 >
                   <Text text="Estado" />
@@ -216,9 +253,17 @@
                     <Text text="{grupos>IDSOCIEDAD}" />
                     <Text text="{grupos>IDCEDI}" />
                     <Text text="{grupos>IDETIQUETA}" />
-                    <ObjectStatus
-                      text="{grupos>EstadoTxt}"
-                      state="{grupos>EstadoUI5}"
+                    <Text text="{grupos>IDVALOR}" />
+                    <Text text="{grupos>IDGRUPOET}" />
+                    <Text text="{grupos>ID}" />
+                    <Text text="{grupos>INFOAD}" />
+                    <Text text="{grupos>RegistroCompleto}" />
+                    <Text text="{grupos>ModificacionCompleta}" />
+                    <core:Icon
+                      src="{grupos>EstadoIcon}"
+                      color="{grupos>EstadoIconColor}"
+                      tooltip="{grupos>EstadoTxt}"
+                      class="sapUiSmallMargin"
                     />
                   </cells>
                 </ColumnListItem>
