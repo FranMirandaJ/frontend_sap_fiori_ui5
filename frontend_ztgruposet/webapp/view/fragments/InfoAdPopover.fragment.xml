@@ -3,7 +3,7 @@
 	xmlns:core="sap.ui.core">
 	<Popover
 		id="infoAdPopover"
-		title="Información Adicional Completa"
+		title="Información adicional completa"
 		class="sapUiResponsivePadding--header sapUiResponsivePadding--content"
 		placement="Auto"
 		contentWidth="320px">

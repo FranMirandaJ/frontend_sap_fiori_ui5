@@ -299,6 +299,7 @@
                 press=".onNavPage"
                 tooltip="Página siguiente"
               />
+              <ToolbarSpacer />
             </Toolbar>
           </VBox>
         </ScrollContainer>
