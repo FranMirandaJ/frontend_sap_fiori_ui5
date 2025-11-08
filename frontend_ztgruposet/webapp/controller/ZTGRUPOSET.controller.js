@@ -17,12 +17,21 @@ sap.ui.define([
 
   return Controller.extend("com.itt.ztgruposet.frontendztgruposet.controller.ZTGRUPOSET", {
 
+    onAvatarPressed: function () {
+			MessageToast.show("Avatar pressed!");
+		},
+
+		onLogoPressed: function () {
+			MessageToast.show("Logo pressed!");
+		},
+
     onInit() {
       this._loadData(); // <- carga inicial
       this.getView().setModel(new JSONModel({}), "updateModel");// modelo para operaciones de update/create
-      this.getView().setModel(new JSONModel({}), "createModel");    
+      this.getView().setModel(new JSONModel({}), "createModel");
+      this.getView().setModel(new JSONModel({ state: false }), "dbServerSwitch"); // contenido del dbServerSwitch
     },
-
+    
     // ==== CARGA DE DATOS DESDE CAP/CDS (POST) ====
     _loadData: async function () {
       const oView = this.getView();
@@ -197,15 +206,19 @@ sap.ui.define([
     },
 
     onSideNavItemSelect(oEvent) {
-      const oItem = oEvent.getParameter("item"),
-        sText = oItem.getText();
-      if (sText === "") return;
-      MessageToast.show(`Item selected: ${sText}`);
+
+      const oItem = oEvent.getParameter("item");
+      const sKey = oItem.getKey(); // Es mejor usar la clave (key) que el texto
+
+      if (sKey === "configuracion") {
+        this._getConfigDialog().then(oDialog => oDialog.open());
+      } else {
+        MessageToast.show(`Item selected: ${oItem.getText()}`);
+      }
     },
 
     // ==== ACCIONES (crear/editar) – placeholders ====
     onCreatePress: async function () {
-      MessageToast.show("hola");
      const oCreateModel = this.getView().getModel("createModel");
       
                 // 2. Abre el Fragmento (el pop-up)
@@ -219,7 +232,6 @@ sap.ui.define([
      const oCreateModel = this.getView().getModel("createModel");
      const oCreate = oCreateModel.getData(); // Datos del formulario
     
-        MessageToast.show(`kiubo ${oCreate.IDSOCIEDAD}`);
     try {
         const payload = {
                 IDSOCIEDAD: oCreate.IDSOCIEDAD,
@@ -362,6 +374,32 @@ sap.ui.define([
             }
             return this._oUpdateDialog;
         },
+
+    // ==== DIÁLOGO DE CONFIGURACIÓN ====
+    _getConfigDialog: function () {
+      if (!this._oConfigDialog) {
+          this._oConfigDialog = Fragment.load({
+              id: this.getView().getId(),
+              name: "com.itt.ztgruposet.frontendztgruposet.view.fragments.ConfigDialog",
+              controller: this
+          }).then(oDialog => {
+              this.getView().addDependent(oDialog);
+              return oDialog;
+          }).catch(oError => {
+              console.error("Error en Fragment.load:", oError);
+          });
+      }
+      return this._oConfigDialog;
+    },
+
+    onCancelConfig: function () {
+      this._getConfigDialog().then(oDialog => oDialog.close());
+    },
+
+    onDbServerChange: function(oEvent) {
+        const bState = oEvent.getParameter("state");
+        this.getView().getModel("dbServerSwitch").setProperty("/state", bState);
+    },
 
     onDeletePress: function () {
       const rec = this._getSelectedRecord();
