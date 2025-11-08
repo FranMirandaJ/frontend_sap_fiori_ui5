@@ -17,6 +17,20 @@ sap.ui.define([
 
   return Controller.extend("com.itt.ztgruposet.frontendztgruposet.controller.ZTGRUPOSET", {
 
+    formatter: {
+      truncateInfoAd: function (sInfo) {
+        if (!sInfo) {
+          return "";
+        }
+        const aWords = sInfo.split(" ");
+        if (aWords.length > 3) {
+          return aWords.slice(0, 3).join(" ") + "...";
+        }
+        return sInfo;
+      }
+    },
+
+
     onAvatarPressed: function () {
 			MessageToast.show("Avatar pressed!");
 		},
@@ -30,6 +44,7 @@ sap.ui.define([
       this.getView().setModel(new JSONModel({}), "updateModel");// modelo para operaciones de update/create
       this.getView().setModel(new JSONModel({}), "createModel");
       this.getView().setModel(new JSONModel({ state: false }), "dbServerSwitch"); // contenido del dbServerSwitch
+      this.getView().setModel(new JSONModel({ text: "" }), "infoAd"); // Modelo para el popover de Info Adicional
     },
     
     // ==== CARGA DE DATOS DESDE CAP/CDS (POST) ====
@@ -470,7 +485,29 @@ sap.ui.define([
       ];
 
       oBinding.filter(new Filter({ filters: aFilters, and: false }));
-    }
+    },
+  
+    // ==== Popover para Información Adicional ====
+    _getInfoAdPopover: function () {
+      if (!this._oInfoAdPopover) {
+        this._oInfoAdPopover = Fragment.load({
+          id: this.getView().getId(),
+          name: "com.itt.ztgruposet.frontendztgruposet.view.fragments.InfoAdPopover",
+          controller: this
+        }).then(oPopover => {
+          this.getView().addDependent(oPopover);
+          return oPopover;
+        });
+      }
+      return this._oInfoAdPopover;
+    },
 
+    onInfoAdPress: function(oEvent) {
+      const oControl = oEvent.getSource();
+      const oContext = oControl.getBindingContext("grupos");
+      const sInfoCompleta = oContext.getProperty("INFOAD");
+      this.getView().getModel("infoAd").setProperty("/text", sInfoCompleta);
+      this._getInfoAdPopover().then(oPopover => oPopover.openBy(oControl));
+    }
   });
 });

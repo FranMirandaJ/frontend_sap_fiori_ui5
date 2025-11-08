@@ -233,7 +233,7 @@
                   minScreenWidth="Desktop"
                   demandPopin="true"
                 >
-                  <Text text="Modificación" />
+                  <Text text="Última modificación" />
                 </Column>
                 <Column
                   minScreenWidth="Desktop"
@@ -256,7 +256,11 @@
                     <Text text="{grupos>IDVALOR}" />
                     <Text text="{grupos>IDGRUPOET}" />
                     <Text text="{grupos>ID}" />
-                    <Text text="{grupos>INFOAD}" />
+                    <Link
+                      text="{path: 'grupos>INFOAD', formatter: '.formatter.truncateInfoAd'}"
+                      press=".onInfoAdPress"
+                      tooltip="Ver información completa"
+                    />
                     <Text text="{grupos>RegistroCompleto}" />
                     <Text text="{grupos>ModificacionCompleta}" />
                     <core:Icon
