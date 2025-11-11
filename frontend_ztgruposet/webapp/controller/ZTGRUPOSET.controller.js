@@ -40,7 +40,7 @@ sap.ui.define([
 		},
 
     onInit() {
-      this._loadData(); // <- carga inicial
+      
       this.getView().setModel(new JSONModel({}), "updateModel");// modelo para operaciones de update/create
       this.getView().setModel(new JSONModel({}), "createModel");
       this.getView().setModel(new JSONModel({ state: false }), "dbServerSwitch"); // contenido del dbServerSwitch
@@ -52,6 +52,7 @@ sap.ui.define([
       this._aFilteredItems = []; // Items después de filtrar/ordenar
       this._iCurrentPage = 1;
       this._iPageSize = 5;
+      this._loadData(); 
     },
     
     _initFilterModel: function() {
@@ -91,12 +92,12 @@ sap.ui.define([
       oView.setBusy(true);
       try {
         // Usa el proxy del ui5.yaml: /api -> http://localhost:4004
-        const url = "/api/security/gruposet/crud?ProcessType=GetAll&DBServer=Mongodb&LoggedUser=PMORALESP";
+      const url = this._getApiParams("GetAll");
 
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" }
-          // body: JSON.stringify({}) // si tu endpoint lo requiere, descomenta
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}) 
         });
         if (!res.ok) throw new Error("HTTP " + res.status);
 
@@ -180,6 +181,20 @@ sap.ui.define([
       };
     },
 
+      _getApiParams: function (sProcessType) { // <-- 1. AÑADIMOS UN PARÁMETRO
+                  const oSwitchModel = this.getView().getModel("dbServerSwitch");
+                  const bIsAzure = oSwitchModel.getProperty("/state"); 
+                  
+                  const sDBServer = bIsAzure ? "Azure" : "Mongodb"; 
+                  const sLoggedUser = "FMIRANDAJ"; // Asegúrate que este sea el usuario correcto
+
+                  // 2. ¡LA SOLUCIÓN! Usamos la URL completa de Render
+                  const sBaseUrl = "https://app-restful-sap-cds.onrender.com/api/security/gruposet/crud";
+
+                  // 3. Devolvemos la URL completa con todos los parámetros
+                  return `${sBaseUrl}?ProcessType=${sProcessType}&DBServer=${sDBServer}&LoggedUser=${sLoggedUser}`;
+              },
+
   // === Acción: DESACTIVAR (Delete lógico) ===
     onDeactivePress: async function () {
       const rec = this._getSelectedRecord();
@@ -188,8 +203,8 @@ sap.ui.define([
         return;
     }
 
-    const url = "/api/security/gruposet/crud?ProcessType=DeleteOne&DBServer=MongoDB&LoggedUser=FMIRANDAJ";
-    const payload = this._buildDeletePayload(rec);
+      const url = this._getApiParams("DeleteOne");
+      const payload = this._buildDeletePayload(rec);
 
       const doCall = async () => {
         this.getView().setBusy(true);
@@ -228,7 +243,7 @@ sap.ui.define([
       const rec = this._getSelectedRecord();
       if (!rec) { sap.m.MessageToast.show("Selecciona un registro."); return; }
 
-      const url = "/api/security/gruposet/crud?ProcessType=UpdateOne&DBServer=mongodb&LoggedUser=FMIRANDAJ";
+      const url = this._getApiParams("UpdateOne");
 
       // Llaves + campos a actualizar
       const payload = {
@@ -309,12 +324,12 @@ sap.ui.define([
                 BORRADO:false 
         };
 
-        const res = await fetch("/api/security/gruposet/crud?ProcessType=Create&DBServer=mongodb&LoggedUser=PMORALESPA", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
+        const sApiParams = this._getApiParams(); 
+        const url = this._getApiParams("Create"); const res = await fetch(url, { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
         });
-
         const json = await res.json();
 
         if (!res.ok || json.error) {
@@ -323,7 +338,8 @@ sap.ui.define([
         }
 
         MessageToast.show("Grupo creado correctamente.");
-         this._getCreateDialog().then(oDialog => {
+          this.getView().getModel("createModel").setData({});
+          this._getCreateDialog().then(oDialog => {
                   oDialog.close();
               });
         await this._loadData();
@@ -382,7 +398,7 @@ sap.ui.define([
             const oRecActualizado = oUpdateModel.getData(); // Datos del formulario
 
             // URL del endpoint de Update (¡igual al de "Activar" de tu compañero!)
-            const url = "/api/security/gruposet/crud?ProcessType=UpdateOne&DBServer=mongodb&LoggedUser=FMIRANDAJ";
+            const url = this._getApiParams("UpdateOne");
 
             // Construimos el Payload (igual al de "Activar")
             const payload = {
@@ -461,8 +477,10 @@ sap.ui.define([
     },
 
     onDbServerChange: function(oEvent) {
-        const bState = oEvent.getParameter("state");
-        this.getView().getModel("dbServerSwitch").setProperty("/state", bState);
+            const bState = oEvent.getParameter("state");
+            this.getView().getModel("dbServerSwitch").setProperty("/state", bState);
+
+            this._loadData();
     },
 
     onDeletePress: function () {
@@ -473,7 +491,7 @@ sap.ui.define([
       }
 
       // Usa el mismo casing que en GetAll: 'Mongodb' o 'MongoDB'
-      const url = "/api/security/gruposet/crud?ProcessType=DeleteHard&DBServer=Mongodb&LoggedUser=FMIRANDAJ";
+      const url = this._getApiParams("DeleteHard");
       const payload = this._buildDeletePayload(rec);
 
       sap.m.MessageBox.warning(
