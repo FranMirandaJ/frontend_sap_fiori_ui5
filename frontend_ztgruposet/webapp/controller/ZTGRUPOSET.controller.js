@@ -47,12 +47,22 @@ sap.ui.define([
       this.getView().setModel(new JSONModel({ text: "" }), "infoAd"); // Modelo para el popover de Info Adicional
       this._initFilterModel(); // Modelo para el diálogo de filtros
 
+  this.getView().setModel(new JSONModel({
+    fullData: [],
+    sociedades: [],
+    cedis: [],
+    etiquetas: [],
+    valores: []
+  }), "cascadeModel");
+      this._aCatalogData = [];
+
       // Propiedades para la paginación personalizada
       this._aAllItems = [];
       this._aFilteredItems = []; // Items después de filtrar/ordenar
       this._iCurrentPage = 1;
       this._iPageSize = 5;
       this._loadData(); 
+      
     },
     
     _initFilterModel: function() {
@@ -297,14 +307,13 @@ sap.ui.define([
     },
 
     // ==== ACCIONES (crear/editar) – placeholders ====
-    onCreatePress: async function () {
-     const oCreateModel = this.getView().getModel("createModel");
-      
-                // 2. Abre el Fragmento (el pop-up)
-                this._getCreateDialog().then(oDialog => {
-                    oDialog.open();
-                });
-    },
+onCreatePress: async function () {
+  await this._loadCatalogosMongo(); // <-- cargar catálogos antes
+  this._getCreateDialog().then((oDialog) => {
+    oDialog.open();
+  });
+},
+
 
     onSaveCreate: async function () {
       
@@ -373,6 +382,195 @@ sap.ui.define([
             }
             return this._oCreateDialog;
         },
+
+_loadCatalogosMongo: async function () {
+  const oView = this.getView();
+  const oModel = new sap.ui.model.json.JSONModel({
+    sociedades: [],
+    cedisAll: [],
+    etiquetasAll: [],
+    valoresAll: [],
+    cedis: [],
+    etiquetas: [],
+    valores: []
+  });
+  oView.setModel(oModel, "cascadeModel");
+
+  const url = "http://localhost:3034/api/cat/crudLabelsValues?ProcessType=GetAll&LoggedUser=MIGUELLOPEZ&DBServer=MongoDB";
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        operations: [
+          {
+            collection: "LabelsValues",
+            action: "GETALL",
+            payload: {}
+          }
+        ]
+      }),
+    });
+
+    const json = await res.json();
+    console.log("📥 Respuesta sin parsear:", json);
+
+    const registros = json?.data?.[0]?.dataRes || [];
+    console.log("✅ DataRes procesado:", registros);
+
+    if (!Array.isArray(registros) || registros.length === 0) {
+      console.warn("⚠️ No se encontraron registros en la respuesta");
+      return;
+    }
+
+    // 🔹 Construimos listas únicas
+    const sociedades = [];
+    const cedis = [];
+    const etiquetas = [];
+    const valores = [];
+
+    registros.forEach((item) => {
+      // SOCIEDADES
+      if (item.IDSOCIEDAD && !sociedades.some((s) => s.key === item.IDSOCIEDAD)) {
+        sociedades.push({
+          key: item.IDSOCIEDAD,
+          text: `Sociedad ${item.IDSOCIEDAD}`,
+        });
+      }
+
+      // CEDIS
+      if (
+        item.IDCEDI &&
+        !cedis.some((c) => c.key === item.IDCEDI && c.parentSoc === item.IDSOCIEDAD)
+      ) {
+        cedis.push({
+          key: item.IDCEDI,
+          text: `Cedi ${item.IDCEDI}`,
+          parentSoc: item.IDSOCIEDAD,
+        });
+      }
+
+      // ETIQUETAS
+      if (item.IDETIQUETA && !etiquetas.some((e) => e.key === item.IDETIQUETA)) {
+        etiquetas.push({
+          key: item.IDETIQUETA,
+          text: item.ETIQUETA || item.IDETIQUETA,
+          IDSOCIEDAD: item.IDSOCIEDAD,
+          IDCEDI: item.IDCEDI,
+        });
+      }
+
+      // VALORES anidados
+      if (Array.isArray(item.valores)) {
+        item.valores.forEach((v) => {
+          valores.push({
+            key: v.IDVALOR,
+            text: v.VALOR,
+            IDSOCIEDAD: v.IDSOCIEDAD,
+            IDCEDI: v.IDCEDI,
+            parentEtiqueta: item.IDETIQUETA,
+          });
+        });
+      }
+    });
+
+    console.log("✅ Sociedades cargadas:", sociedades);
+    console.log("✅ CEDIS cargados:", cedis);
+    console.log("✅ Etiquetas cargadas:", etiquetas);
+    console.log("✅ Valores cargados:", valores);
+
+    // 🔹 Actualizamos el modelo
+    oModel.setProperty("/sociedades", sociedades);
+    oModel.setProperty("/cedisAll", cedis);
+    oModel.setProperty("/etiquetasAll", etiquetas);
+    oModel.setProperty("/valoresAll", valores);
+
+  } catch (err) {
+    console.error("💥 Error al cargar catálogos:", err);
+  }
+},
+
+
+
+        // --- PASO 1: Poblar Sociedades ---
+        _populateSociedades: function () {
+            const oCascadeModel = this.getView().getModel("cascadeModel");
+            // Usamos '...new Set' para obtener valores únicos de la lista maestra
+            const aNombresSoc = [...new Set(this._aCatalogData.map(item => item.IDSOCIEDAD))];
+            // Filtramos 'undefined' por si algún registro no tiene sociedad
+            const aSociedades = aNombresSoc.filter(id => id !== undefined).map(id => ({ key: id, text: id }));
+            oCascadeModel.setProperty("/sociedades", aSociedades);
+        },
+
+        // --- PASO 2: Evento al cambiar Sociedad ---
+      onSociedadChange: function (oEvent) {
+  const selectedSoc = oEvent.getSource().getSelectedKey();
+  const oModel = this.getView().getModel("cascadeModel");
+
+  console.log("✅ Sociedad seleccionada:", selectedSoc);
+
+  // Reiniciamos combos dependientes
+  oModel.setProperty("/cedis", []);
+  oModel.setProperty("/etiquetas", []);
+  oModel.setProperty("/valores", []);
+
+  if (!selectedSoc) return;
+
+  const allCedis = oModel.getProperty("/cedisAll") || [];
+  const filteredCedis = allCedis.filter((c) => c.parentSoc == selectedSoc);
+
+  console.log("🟩 CEDIS filtrados:", filteredCedis);
+  oModel.setProperty("/cedis", filteredCedis);
+},
+
+onCediChange: function (oEvent) {
+  const selectedCedi = oEvent.getSource().getSelectedKey();
+  const oCreateModel = this.getView().getModel("createModel");
+  const selectedSoc = oCreateModel.getProperty("/IDSOCIEDAD");
+  const oModel = this.getView().getModel("cascadeModel");
+
+  console.log("✅ CEDI seleccionado:", selectedCedi, "Sociedad:", selectedSoc);
+
+  oModel.setProperty("/etiquetas", []);
+  oModel.setProperty("/valores", []);
+
+  if (!selectedCedi || !selectedSoc) return;
+
+  const allEtiquetas = oModel.getProperty("/etiquetasAll") || [];
+  const filteredEtiquetas = allEtiquetas.filter(
+    (e) => e.IDSOCIEDAD == selectedSoc && e.IDCEDI == selectedCedi
+  );
+
+  console.log("🟩 Etiquetas filtradas:", filteredEtiquetas);
+  oModel.setProperty("/etiquetas", filteredEtiquetas);
+},
+
+onEtiquetaChange: function (oEvent) {
+  const selectedEtiqueta = oEvent.getSource().getSelectedKey();
+  const oCreateModel = this.getView().getModel("createModel");
+  const selectedSoc = oCreateModel.getProperty("/IDSOCIEDAD");
+  const selectedCedi = oCreateModel.getProperty("/IDCEDI");
+  const oModel = this.getView().getModel("cascadeModel");
+
+  console.log("✅ Etiqueta seleccionada:", selectedEtiqueta, "Soc:", selectedSoc, "Cedi:", selectedCedi);
+
+  oModel.setProperty("/valores", []);
+
+  if (!selectedEtiqueta || !selectedSoc || !selectedCedi) return;
+
+  const allValores = oModel.getProperty("/valoresAll") || [];
+  const filteredValores = allValores.filter(
+    (v) =>
+      v.IDSOCIEDAD == selectedSoc &&
+      v.IDCEDI == selectedCedi &&
+      v.parentEtiqueta == selectedEtiqueta
+  );
+
+  console.log("🟦 Valores filtrados:", filteredValores);
+  oModel.setProperty("/valores", filteredValores);
+},
+
 
 
     onEditPress: function () {
