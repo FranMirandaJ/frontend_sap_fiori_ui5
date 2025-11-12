@@ -308,7 +308,7 @@ sap.ui.define([
 
     // ==== ACCIONES (crear/editar) – placeholders ====
 onCreatePress: async function () {
-  await this._loadCatalogosMongo(); // <-- cargar catálogos antes
+  await this._loadExternalCatalogData(); // <-- cargar catálogos antes
   this._getCreateDialog().then((oDialog) => {
     oDialog.open();
   });
@@ -383,7 +383,7 @@ onCreatePress: async function () {
             return this._oCreateDialog;
         },
 
-_loadCatalogosMongo: async function () {
+_loadExternalCatalogData: async function () {
   const oView = this.getView();
   const oModel = new sap.ui.model.json.JSONModel({
     sociedades: [],
@@ -396,7 +396,18 @@ _loadCatalogosMongo: async function () {
   });
   oView.setModel(oModel, "cascadeModel");
 
-  const url = "http://localhost:3034/api/cat/crudLabelsValues?ProcessType=GetAll&LoggedUser=MIGUELLOPEZ&DBServer=MongoDB";
+  const oSwitchModel = this.getView().getModel("dbServerSwitch");
+const bIsAzure = oSwitchModel.getProperty("/state"); 
+
+// 2. Definimos la base de la API del "otro team" (¡Esto usa el proxy!)
+const sBaseUrl = "http://localhost:3034/api/cat/crudLabelsValues";
+
+// 3. Asignamos el DBServer correcto
+const sDBServer = bIsAzure ? "CosmosDB" : "MongoDB"; // <-- ¡Aquí está la magia!
+const sLoggedUser = "MIGUELLOPEZ";
+
+// 4. Construimos la URL final
+const url = `${sBaseUrl}?ProcessType=GetAll&LoggedUser=${sLoggedUser}&DBServer=${sDBServer}`;
 
   try {
     const res = await fetch(url, {
@@ -506,11 +517,16 @@ _loadCatalogosMongo: async function () {
         // --- PASO 2: Evento al cambiar Sociedad ---
       onSociedadChange: function (oEvent) {
   const selectedSoc = oEvent.getSource().getSelectedKey();
+  const oCreateModel = this.getView().getModel("createModel");
   const oModel = this.getView().getModel("cascadeModel");
 
   console.log("✅ Sociedad seleccionada:", selectedSoc);
 
-  // Reiniciamos combos dependientes
+  // Limpiar combos dependientes
+  oCreateModel.setProperty("/IDCEDI", null);
+  oCreateModel.setProperty("/IDETIQUETA", null);
+  oCreateModel.setProperty("/IDVALOR", null);
+
   oModel.setProperty("/cedis", []);
   oModel.setProperty("/etiquetas", []);
   oModel.setProperty("/valores", []);
@@ -524,6 +540,7 @@ _loadCatalogosMongo: async function () {
   oModel.setProperty("/cedis", filteredCedis);
 },
 
+
 onCediChange: function (oEvent) {
   const selectedCedi = oEvent.getSource().getSelectedKey();
   const oCreateModel = this.getView().getModel("createModel");
@@ -531,6 +548,10 @@ onCediChange: function (oEvent) {
   const oModel = this.getView().getModel("cascadeModel");
 
   console.log("✅ CEDI seleccionado:", selectedCedi, "Sociedad:", selectedSoc);
+
+  // Limpiar combos dependientes
+  oCreateModel.setProperty("/IDETIQUETA", null);
+  oCreateModel.setProperty("/IDVALOR", null);
 
   oModel.setProperty("/etiquetas", []);
   oModel.setProperty("/valores", []);
@@ -555,6 +576,8 @@ onEtiquetaChange: function (oEvent) {
 
   console.log("✅ Etiqueta seleccionada:", selectedEtiqueta, "Soc:", selectedSoc, "Cedi:", selectedCedi);
 
+  // Limpiar combo dependiente
+  oCreateModel.setProperty("/IDVALOR", null);
   oModel.setProperty("/valores", []);
 
   if (!selectedEtiqueta || !selectedSoc || !selectedCedi) return;
@@ -570,7 +593,6 @@ onEtiquetaChange: function (oEvent) {
   console.log("🟦 Valores filtrados:", filteredValores);
   oModel.setProperty("/valores", filteredValores);
 },
-
 
 
     onEditPress: function () {
