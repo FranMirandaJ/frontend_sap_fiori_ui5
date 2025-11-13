@@ -39,6 +39,11 @@ sap.ui.define([
 			MessageToast.show("Logo pressed!");
 		},
 
+    _aSearchFilters:  [],
+    _aDialogFilters:  [],
+    _aQuickFilters:   [],
+    _oFilterDialog:   null,
+
     onInit() {
       
       this.getView().setModel(new JSONModel({}), "updateModel");// modelo para operaciones de update/create
@@ -168,6 +173,61 @@ sap.ui.define([
     onRowPress: function (oEvent) {
       const rec = oEvent.getSource().getBindingContext("grupos").getObject();
       // abrir diálogo de edición, etc.
+    },
+
+    //función de búsqueda ////////////////////////////////////////////////////////////////////////////////
+
+    onSearch1: function (oEvent) {
+      var sQuery =
+          oEvent.getParameter("newValue") ||
+          oEvent.getParameter("query") ||
+          oEvent.getSource().getValue();
+
+      var oTable   = this.byId("tblGrupos");
+      var oBinding = oTable.getBinding("items");
+
+      if (!sQuery) {
+          oBinding.filter([]);
+          return;
+      }
+
+      var aFilters = [];
+
+      // 👉 Si lo que escribió puede ser número, filtramos numéricos con EQ
+      if (!isNaN(sQuery)) {
+          var iQuery = parseInt(sQuery, 10);
+
+          aFilters.push(new Filter("IDSOCIEDAD", FilterOperator.EQ, iQuery));
+          aFilters.push(new Filter("IDCEDI",     FilterOperator.EQ, iQuery));
+          aFilters.push(new Filter("ID",         FilterOperator.EQ, iQuery));
+      }
+
+      // 👉 Campos STRING con Contains (sin problema)
+      aFilters.push(new Filter("IDETIQUETA",       FilterOperator.Contains, sQuery));
+    
+
+      // OR entre todos los filtros
+      var oFilter = new Filter({
+          filters: aFilters,
+          and: false
+      });
+
+      oBinding.filter(oFilter);
+    },
+
+    onQuickFilter: function (oEvent) {
+      var sKey = oEvent.getParameter("key");
+      var aFilters = [];
+
+      if (sKey === "ACT") {
+          aFilters.push(new Filter("EstadoTxt", FilterOperator.EQ, "Activo"));
+      } else if (sKey === "INA") {
+          aFilters.push(new Filter("EstadoTxt", FilterOperator.EQ, "Inactivo"));
+      }
+      // sKey === "ALL" => sin filtro de estado
+
+      // Puedes combinar con otros filtros si quieres, por ahora solo Estado:
+      this.byId("tblGrupos").getBinding("items").filter(aFilters);
     },
 
         // === Helper: obtener el registro seleccionado de la tabla ===
@@ -307,12 +367,12 @@ sap.ui.define([
     },
 
     // ==== ACCIONES (crear/editar) – placeholders ====
-onCreatePress: async function () {
-  await this._loadExternalCatalogData(); // <-- cargar catálogos antes
-  this._getCreateDialog().then((oDialog) => {
-    oDialog.open();
-  });
-},
+    onCreatePress: async function () {
+      await this._loadExternalCatalogData(); // <-- cargar catálogos antes
+      this._getCreateDialog().then((oDialog) => {
+        oDialog.open();
+      });
+    },
 
 
     onSaveCreate: async function () {
@@ -746,48 +806,179 @@ onEtiquetaChange: function (oEvent) {
         }
       );
     },
+    //filtro rapido ////////////////////////////////////////////////////////////////////////////////
+    onQuickFilter: function (oEvent) {
+        var sKey = oEvent.getParameter("key");
+        this._aQuickFilters = [];
+
+        if (sKey === "ACT") {
+            this._aQuickFilters.push(new Filter("EstadoTxt", FilterOperator.EQ, "Activo"));
+        } else if (sKey === "INA") {
+            this._aQuickFilters.push(new Filter("EstadoTxt", FilterOperator.EQ, "Inactivo"));
+        }
+
+        this._applyAllFilters();
+    },
 
     // ==== LÓGICA DE FILTRADO Y BÚSQUEDA ====
-    onSearch: function(oEvent) {
-      const sQuery = oEvent.getParameter("query");
-      this.getView().getModel("filter").setProperty("/searchQuery", sQuery);
-      this._applyFiltersAndSort();
-    },
+    onSearch1: function (oEvent) {
+      var sQuery =
+          oEvent.getParameter("newValue") ||
+          oEvent.getParameter("query") ||
+          oEvent.getSource().getValue();
 
-    onFilterPress: function() {
-      this._getFilterDialog().then(oDialog => oDialog.open());
-    },
+      this._aSearchFilters = [];
 
-    _getFilterDialog: function() {
-      if (!this._oFilterDialog) {
-        this._oFilterDialog = Fragment.load({
-          id: this.getView().getId(),
-          name: "com.itt.ztgruposet.frontendztgruposet.view.fragments.FilterDialog",
-          controller: this
-        }).then(oDialog => {
-          // --- INICIO: Lógica para poblar los RadioButtons ---
-          const oFilterModel = this.getView().getModel("filter");
-          const aFields = oFilterModel.getProperty("/fields");
-          const iSelectedIndex = oFilterModel.getProperty("/selectedFieldIndex");
-          const oRadioGroup = this.byId("searchFieldGroup");
+      if (sQuery) {
+          var aFilters = [];
 
-          oRadioGroup.destroyButtons(); // Limpiamos por si acaso
+          // 🔹 Si es número, seguimos usando búsqueda exacta
+          if (!isNaN(sQuery)) {
+              var iQuery = parseInt(sQuery, 10);
+              aFilters.push(new Filter("IDSOCIEDAD", FilterOperator.EQ, iQuery));
+              aFilters.push(new Filter("IDCEDI",     FilterOperator.EQ, iQuery));
+              aFilters.push(new Filter("ID",         FilterOperator.EQ, iQuery));
+          }
 
-          aFields.forEach(oField => {
-            oRadioGroup.addButton(new sap.m.RadioButton({ text: oField.text }));
-          });
+          // 🔹 Para texto, usamos Contains (coincidencia parcial)
+          aFilters.push(new Filter("IDETIQUETA",   FilterOperator.Contains, sQuery));
+          aFilters.push(new Filter("IDVALOR",      FilterOperator.Contains, sQuery));
+          aFilters.push(new Filter("IDGRUPOET",    FilterOperator.Contains, sQuery));
+          aFilters.push(new Filter("INFOAD",       FilterOperator.Contains, sQuery));
+          aFilters.push(new Filter("EstadoTxt",    FilterOperator.Contains, sQuery)); 
+          // si escribes "Act" o "Inac" también te filtra por estado
 
-          oRadioGroup.setSelectedIndex(iSelectedIndex);
-          // --- FIN: Lógica para poblar los RadioButtons ---
-
-          this.getView().addDependent(oDialog);
-          return oDialog;
-        });
+          // OR entre todos esos campos
+          this._aSearchFilters = [
+              new Filter({ filters: aFilters, and: false })
+          ];
       }
-      return this._oFilterDialog;
+
+      this._applyAllFilters();   // 👉 aquí se combina con quick filter + filtros avanzados
     },
 
-    onApplyFilters: function() {
+    onFilterApply: function () {
+      // ... sacas los valores del diálogo  ...
+
+      var aFilters = [];
+
+      // agregas IDSOCIEDAD, IDCEDI, IDETIQUETA, IDVALOR, fechas, estado, etc.
+      // y al final:
+
+      this._aDialogFilters = aFilters;
+      this._applyAllFilters();
+      this._oFilterDialog.close();
+    },
+
+      //aplicion de todos los filtros de busqueda ///////////////////////////////////////////////////////
+    _aSearchFilters:   [],
+    _aDialogFilters:   [],
+    _aQuickFilters:    [],
+
+    _applyAllFilters: function () {
+        var oBinding = this.byId("tblGrupos").getBinding("items");
+
+        var aAll = []
+            .concat(this._aSearchFilters  || [])
+            .concat(this._aDialogFilters  || [])
+            .concat(this._aQuickFilters   || []);
+
+        oBinding.filter(aAll);  // AND entre grupos
+    },
+
+    _oFilterDialog: null,
+
+    onFilterPress2: function () {
+        var oView = this.getView();
+
+        if (!this._oFilterDialog) {
+            this._oFilterDialog = sap.ui.xmlfragment(
+                oView.getId(),
+                "com.itt.ztgruposet.frontendztgruposet.view.fragments.FilterDialog2",
+                this
+            );
+            oView.addDependent(this._oFilterDialog);
+        }
+
+        this._oFilterDialog.open();
+    },
+
+    onFilterApply2: function () {
+      var oCore = sap.ui.getCore();
+      var oView = this.getView();
+
+      var sSoc  = oCore.byId(oView.createId("fSociedad")).getValue().trim();
+      var sCedi = oCore.byId(oView.createId("fCedi")).getValue().trim();
+      var sEti  = oCore.byId(oView.createId("fEtiqueta")).getValue().trim();
+      var sVal  = oCore.byId(oView.createId("fValor")).getValue().trim();
+      var oDRS  = oCore.byId(oView.createId("fRegDate"));
+      var oEstadoSB = oCore.byId(oView.createId("fEstado"));
+
+      var oFrom = oDRS.getDateValue();
+      var oTo   = oDRS.getSecondDateValue();
+      var sEstadoKey = oEstadoSB.getSelectedKey() || "ALL";
+
+      var aFilters = [];
+
+      if (sSoc && !isNaN(sSoc)) {
+          aFilters.push(new Filter("IDSOCIEDAD", FilterOperator.EQ, parseInt(sSoc, 10)));
+      }
+
+      if (sCedi && !isNaN(sCedi)) {
+          aFilters.push(new Filter("IDCEDI", FilterOperator.EQ, parseInt(sCedi, 10)));
+      }
+
+      if (sEti) {
+          aFilters.push(new Filter("IDETIQUETA", FilterOperator.EQ, sEti));
+      }
+
+      if (sVal) {
+          aFilters.push(new Filter("IDVALOR", FilterOperator.EQ, sVal));
+      }
+
+      if (oFrom && oTo) {
+          aFilters.push(new Filter("REGDATE", FilterOperator.BT, oFrom, oTo));
+      }
+
+      if (sEstadoKey === "ACT") {
+          aFilters.push(new Filter("EstadoTxt", FilterOperator.EQ, "Activo"));
+      } else if (sEstadoKey === "INA") {
+          aFilters.push(new Filter("EstadoTxt", FilterOperator.EQ, "Inactivo"));
+      }
+
+      // 🔴 AQUÍ es lo importante:
+      this._aDialogFilters = aFilters;   // guardamos solo aquí
+      this._applyAllFilters();
+
+      this._oFilterDialog.close();
+    },
+
+    //limpiar filtros de dialogo ///////////////////////////////////////////////////////
+    onFilterClear: function () {
+      var oCore = sap.ui.getCore();
+      var oView = this.getView();
+
+      oCore.byId(oView.createId("fSociedad")).setValue("");
+      oCore.byId(oView.createId("fCedi")).setValue("");
+      oCore.byId(oView.createId("fEtiqueta")).setValue("");
+      oCore.byId(oView.createId("fValor")).setValue("");
+      oCore.byId(oView.createId("fRegDate")).setDateValue(null);
+      oCore.byId(oView.createId("fRegDate")).setSecondDateValue(null);
+      oCore.byId(oView.createId("fEstado")).setSelectedKey("ALL");
+
+      // 🔴 ESTE ES EL PASO CLAVE:
+      this._aDialogFilters = [];   // quitar completamente los filtros avanzados
+
+      this._applyAllFilters();     // se quedan solo search + quick (si hay)
+    },
+
+    onFilterCancel: function () {
+      if (this._oFilterDialog) {
+          this._oFilterDialog.close();
+      }
+    },
+
+    onFilterApply: function() {
       this._applyFiltersAndSort();
       this._getFilterDialog().then(oDialog => oDialog.close());
     },
