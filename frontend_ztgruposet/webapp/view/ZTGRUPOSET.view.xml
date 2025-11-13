@@ -168,13 +168,27 @@
                 <SearchField
                   id="searchField"
                   width="250px"
-                  search=".onSearch"
-                  liveChange=".onSearch"
+                  search=".onSearch1"
+                  liveChange=".onSearch1"
                   placeholder="Buscar..."
                 />
+                <!-- Filtros rápidos por estado -->
+                <SegmentedButton
+                  id="sbEstadoQuick"
+                  class="sapUiTinyMarginBegin"
+                  select=".onQuickFilter"
+                   width="250px"
+                >
+                <items>
+                  <SegmentedButtonItem key="ALL" text="Todos" />
+                  <SegmentedButtonItem key="ACT" text="Activos" />
+                  <SegmentedButtonItem key="INA" text="Inactivos" />
+                </items>
+                </SegmentedButton>
+                
                 <Button
                   icon="sap-icon://filter"
-                  press=".onFilterPress"
+                  press=".onFilterPress2"
                   tooltip="Filtros avanzados"
                   class="sapUiTinyMarginBegin"
                 />
