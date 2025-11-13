@@ -36,4 +36,4 @@ server:
         # <<< PROXY AL BACKEND CAP/CDS >>>
         backend:
           - path: /api
-            url: http://localhost:4004
+            url: https://app-restful-sap-cds.onrender.com

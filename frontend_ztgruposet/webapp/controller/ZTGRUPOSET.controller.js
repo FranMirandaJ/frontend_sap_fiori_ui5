@@ -40,18 +40,29 @@ sap.ui.define([
 		},
 
     onInit() {
-      this._loadData(); // <- carga inicial
+      
       this.getView().setModel(new JSONModel({}), "updateModel");// modelo para operaciones de update/create
       this.getView().setModel(new JSONModel({}), "createModel");
       this.getView().setModel(new JSONModel({ state: false }), "dbServerSwitch"); // contenido del dbServerSwitch
       this.getView().setModel(new JSONModel({ text: "" }), "infoAd"); // Modelo para el popover de Info Adicional
       this._initFilterModel(); // Modelo para el diálogo de filtros
 
+  this.getView().setModel(new JSONModel({
+    fullData: [],
+    sociedades: [],
+    cedis: [],
+    etiquetas: [],
+    valores: []
+  }), "cascadeModel");
+      this._aCatalogData = [];
+
       // Propiedades para la paginación personalizada
       this._aAllItems = [];
       this._aFilteredItems = []; // Items después de filtrar/ordenar
       this._iCurrentPage = 1;
       this._iPageSize = 5;
+      this._loadData(); 
+      
     },
     
     _initFilterModel: function() {
@@ -91,12 +102,12 @@ sap.ui.define([
       oView.setBusy(true);
       try {
         // Usa el proxy del ui5.yaml: /api -> http://localhost:4004
-        const url = "/api/security/gruposet/crud?ProcessType=GetAll&DBServer=Mongodb&LoggedUser=PMORALESP";
+      const url = this._getApiParams("GetAll");
 
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" }
-          // body: JSON.stringify({}) // si tu endpoint lo requiere, descomenta
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}) 
         });
         if (!res.ok) throw new Error("HTTP " + res.status);
 
@@ -180,6 +191,20 @@ sap.ui.define([
       };
     },
 
+      _getApiParams: function (sProcessType) { // <-- 1. AÑADIMOS UN PARÁMETRO
+                  const oSwitchModel = this.getView().getModel("dbServerSwitch");
+                  const bIsAzure = oSwitchModel.getProperty("/state"); 
+                  
+                  const sDBServer = bIsAzure ? "Azure" : "Mongodb"; 
+                  const sLoggedUser = "FMIRANDAJ"; // Asegúrate que este sea el usuario correcto
+
+                  // 2. ¡LA SOLUCIÓN! Usamos la URL completa de Render
+                  const sBaseUrl = "https://app-restful-sap-cds.onrender.com/api/security/gruposet/crud";
+
+                  // 3. Devolvemos la URL completa con todos los parámetros
+                  return `${sBaseUrl}?ProcessType=${sProcessType}&DBServer=${sDBServer}&LoggedUser=${sLoggedUser}`;
+              },
+
   // === Acción: DESACTIVAR (Delete lógico) ===
     onDeactivePress: async function () {
       const rec = this._getSelectedRecord();
@@ -188,8 +213,8 @@ sap.ui.define([
         return;
     }
 
-    const url = "/api/security/gruposet/crud?ProcessType=DeleteOne&DBServer=MongoDB&LoggedUser=FMIRANDAJ";
-    const payload = this._buildDeletePayload(rec);
+      const url = this._getApiParams("DeleteOne");
+      const payload = this._buildDeletePayload(rec);
 
       const doCall = async () => {
         this.getView().setBusy(true);
@@ -228,7 +253,7 @@ sap.ui.define([
       const rec = this._getSelectedRecord();
       if (!rec) { sap.m.MessageToast.show("Selecciona un registro."); return; }
 
-      const url = "/api/security/gruposet/crud?ProcessType=UpdateOne&DBServer=mongodb&LoggedUser=FMIRANDAJ";
+      const url = this._getApiParams("UpdateOne");
 
       // Llaves + campos a actualizar
       const payload = {
@@ -282,14 +307,13 @@ sap.ui.define([
     },
 
     // ==== ACCIONES (crear/editar) – placeholders ====
-    onCreatePress: async function () {
-     const oCreateModel = this.getView().getModel("createModel");
-      
-                // 2. Abre el Fragmento (el pop-up)
-                this._getCreateDialog().then(oDialog => {
-                    oDialog.open();
-                });
-    },
+onCreatePress: async function () {
+  await this._loadExternalCatalogData(); // <-- cargar catálogos antes
+  this._getCreateDialog().then((oDialog) => {
+    oDialog.open();
+  });
+},
+
 
     onSaveCreate: async function () {
       
@@ -309,12 +333,12 @@ sap.ui.define([
                 BORRADO:false 
         };
 
-        const res = await fetch("/api/security/gruposet/crud?ProcessType=Create&DBServer=mongodb&LoggedUser=PMORALESPA", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
+        const sApiParams = this._getApiParams(); 
+        const url = this._getApiParams("Create"); const res = await fetch(url, { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
         });
-
         const json = await res.json();
 
         if (!res.ok || json.error) {
@@ -323,7 +347,8 @@ sap.ui.define([
         }
 
         MessageToast.show("Grupo creado correctamente.");
-         this._getCreateDialog().then(oDialog => {
+          this.getView().getModel("createModel").setData({});
+          this._getCreateDialog().then(oDialog => {
                   oDialog.close();
               });
         await this._loadData();
@@ -358,6 +383,217 @@ sap.ui.define([
             return this._oCreateDialog;
         },
 
+_loadExternalCatalogData: async function () {
+  const oView = this.getView();
+  const oModel = new sap.ui.model.json.JSONModel({
+    sociedades: [],
+    cedisAll: [],
+    etiquetasAll: [],
+    valoresAll: [],
+    cedis: [],
+    etiquetas: [],
+    valores: []
+  });
+  oView.setModel(oModel, "cascadeModel");
+
+  const oSwitchModel = this.getView().getModel("dbServerSwitch");
+const bIsAzure = oSwitchModel.getProperty("/state"); 
+
+// 2. Definimos la base de la API del "otro team" (¡Esto usa el proxy!)
+const sBaseUrl = "http://localhost:3034/api/cat/crudLabelsValues";
+
+// 3. Asignamos el DBServer correcto
+const sDBServer = bIsAzure ? "CosmosDB" : "MongoDB"; // <-- ¡Aquí está la magia!
+const sLoggedUser = "MIGUELLOPEZ";
+
+// 4. Construimos la URL final
+const url = `${sBaseUrl}?ProcessType=GetAll&LoggedUser=${sLoggedUser}&DBServer=${sDBServer}`;
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        operations: [
+          {
+            collection: "LabelsValues",
+            action: "GETALL",
+            payload: {}
+          }
+        ]
+      }),
+    });
+
+    const json = await res.json();
+    console.log("📥 Respuesta sin parsear:", json);
+
+    const registros = json?.data?.[0]?.dataRes || [];
+    console.log("✅ DataRes procesado:", registros);
+
+    if (!Array.isArray(registros) || registros.length === 0) {
+      console.warn("⚠️ No se encontraron registros en la respuesta");
+      return;
+    }
+
+    // 🔹 Construimos listas únicas
+    const sociedades = [];
+    const cedis = [];
+    const etiquetas = [];
+    const valores = [];
+
+    registros.forEach((item) => {
+      // SOCIEDADES
+      if (item.IDSOCIEDAD && !sociedades.some((s) => s.key === item.IDSOCIEDAD)) {
+        sociedades.push({
+          key: item.IDSOCIEDAD,
+          text: `Sociedad ${item.IDSOCIEDAD}`,
+        });
+      }
+
+      // CEDIS
+      if (
+        item.IDCEDI &&
+        !cedis.some((c) => c.key === item.IDCEDI && c.parentSoc === item.IDSOCIEDAD)
+      ) {
+        cedis.push({
+          key: item.IDCEDI,
+          text: `Cedi ${item.IDCEDI}`,
+          parentSoc: item.IDSOCIEDAD,
+        });
+      }
+
+      // ETIQUETAS
+      if (item.IDETIQUETA && !etiquetas.some((e) => e.key === item.IDETIQUETA)) {
+        etiquetas.push({
+          key: item.IDETIQUETA,
+          text: item.ETIQUETA || item.IDETIQUETA,
+          IDSOCIEDAD: item.IDSOCIEDAD,
+          IDCEDI: item.IDCEDI,
+        });
+      }
+
+      // VALORES anidados
+      if (Array.isArray(item.valores)) {
+        item.valores.forEach((v) => {
+          valores.push({
+            key: v.IDVALOR,
+            text: v.VALOR,
+            IDSOCIEDAD: v.IDSOCIEDAD,
+            IDCEDI: v.IDCEDI,
+            parentEtiqueta: item.IDETIQUETA,
+          });
+        });
+      }
+    });
+
+    console.log("✅ Sociedades cargadas:", sociedades);
+    console.log("✅ CEDIS cargados:", cedis);
+    console.log("✅ Etiquetas cargadas:", etiquetas);
+    console.log("✅ Valores cargados:", valores);
+
+    // 🔹 Actualizamos el modelo
+    oModel.setProperty("/sociedades", sociedades);
+    oModel.setProperty("/cedisAll", cedis);
+    oModel.setProperty("/etiquetasAll", etiquetas);
+    oModel.setProperty("/valoresAll", valores);
+
+  } catch (err) {
+    console.error("💥 Error al cargar catálogos:", err);
+  }
+},
+
+
+
+        // --- PASO 1: Poblar Sociedades ---
+        _populateSociedades: function () {
+            const oCascadeModel = this.getView().getModel("cascadeModel");
+            // Usamos '...new Set' para obtener valores únicos de la lista maestra
+            const aNombresSoc = [...new Set(this._aCatalogData.map(item => item.IDSOCIEDAD))];
+            // Filtramos 'undefined' por si algún registro no tiene sociedad
+            const aSociedades = aNombresSoc.filter(id => id !== undefined).map(id => ({ key: id, text: id }));
+            oCascadeModel.setProperty("/sociedades", aSociedades);
+        },
+
+        // --- PASO 2: Evento al cambiar Sociedad ---
+      onSociedadChange: function (oEvent) {
+  const selectedSoc = oEvent.getSource().getSelectedKey();
+  const oCreateModel = this.getView().getModel("createModel");
+  const oModel = this.getView().getModel("cascadeModel");
+
+  console.log("✅ Sociedad seleccionada:", selectedSoc);
+
+  // Limpiar combos dependientes
+  oCreateModel.setProperty("/IDCEDI", null);
+  oCreateModel.setProperty("/IDETIQUETA", null);
+  oCreateModel.setProperty("/IDVALOR", null);
+
+  oModel.setProperty("/cedis", []);
+  oModel.setProperty("/etiquetas", []);
+  oModel.setProperty("/valores", []);
+
+  if (!selectedSoc) return;
+
+  const allCedis = oModel.getProperty("/cedisAll") || [];
+  const filteredCedis = allCedis.filter((c) => c.parentSoc == selectedSoc);
+
+  console.log("🟩 CEDIS filtrados:", filteredCedis);
+  oModel.setProperty("/cedis", filteredCedis);
+},
+
+
+onCediChange: function (oEvent) {
+  const selectedCedi = oEvent.getSource().getSelectedKey();
+  const oCreateModel = this.getView().getModel("createModel");
+  const selectedSoc = oCreateModel.getProperty("/IDSOCIEDAD");
+  const oModel = this.getView().getModel("cascadeModel");
+
+  console.log("✅ CEDI seleccionado:", selectedCedi, "Sociedad:", selectedSoc);
+
+  // Limpiar combos dependientes
+  oCreateModel.setProperty("/IDETIQUETA", null);
+  oCreateModel.setProperty("/IDVALOR", null);
+
+  oModel.setProperty("/etiquetas", []);
+  oModel.setProperty("/valores", []);
+
+  if (!selectedCedi || !selectedSoc) return;
+
+  const allEtiquetas = oModel.getProperty("/etiquetasAll") || [];
+  const filteredEtiquetas = allEtiquetas.filter(
+    (e) => e.IDSOCIEDAD == selectedSoc && e.IDCEDI == selectedCedi
+  );
+
+  console.log("🟩 Etiquetas filtradas:", filteredEtiquetas);
+  oModel.setProperty("/etiquetas", filteredEtiquetas);
+},
+
+onEtiquetaChange: function (oEvent) {
+  const selectedEtiqueta = oEvent.getSource().getSelectedKey();
+  const oCreateModel = this.getView().getModel("createModel");
+  const selectedSoc = oCreateModel.getProperty("/IDSOCIEDAD");
+  const selectedCedi = oCreateModel.getProperty("/IDCEDI");
+  const oModel = this.getView().getModel("cascadeModel");
+
+  console.log("✅ Etiqueta seleccionada:", selectedEtiqueta, "Soc:", selectedSoc, "Cedi:", selectedCedi);
+
+  // Limpiar combo dependiente
+  oCreateModel.setProperty("/IDVALOR", null);
+  oModel.setProperty("/valores", []);
+
+  if (!selectedEtiqueta || !selectedSoc || !selectedCedi) return;
+
+  const allValores = oModel.getProperty("/valoresAll") || [];
+  const filteredValores = allValores.filter(
+    (v) =>
+      v.IDSOCIEDAD == selectedSoc &&
+      v.IDCEDI == selectedCedi &&
+      v.parentEtiqueta == selectedEtiqueta
+  );
+
+  console.log("🟦 Valores filtrados:", filteredValores);
+  oModel.setProperty("/valores", filteredValores);
+},
+
 
     onEditPress: function () {
                 const oRec = this._getSelectedRecord(); // Usa la función de tu compañero
@@ -382,7 +618,7 @@ sap.ui.define([
             const oRecActualizado = oUpdateModel.getData(); // Datos del formulario
 
             // URL del endpoint de Update (¡igual al de "Activar" de tu compañero!)
-            const url = "/api/security/gruposet/crud?ProcessType=UpdateOne&DBServer=mongodb&LoggedUser=FMIRANDAJ";
+            const url = this._getApiParams("UpdateOne");
 
             // Construimos el Payload (igual al de "Activar")
             const payload = {
@@ -461,8 +697,10 @@ sap.ui.define([
     },
 
     onDbServerChange: function(oEvent) {
-        const bState = oEvent.getParameter("state");
-        this.getView().getModel("dbServerSwitch").setProperty("/state", bState);
+            const bState = oEvent.getParameter("state");
+            this.getView().getModel("dbServerSwitch").setProperty("/state", bState);
+
+            this._loadData();
     },
 
     onDeletePress: function () {
@@ -473,7 +711,7 @@ sap.ui.define([
       }
 
       // Usa el mismo casing que en GetAll: 'Mongodb' o 'MongoDB'
-      const url = "/api/security/gruposet/crud?ProcessType=DeleteHard&DBServer=Mongodb&LoggedUser=FMIRANDAJ";
+      const url = this._getApiParams("DeleteHard");
       const payload = this._buildDeletePayload(rec);
 
       sap.m.MessageBox.warning(

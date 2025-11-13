@@ -1,26 +1,51 @@
 <core:FragmentDefinition
     xmlns="sap.m"
     xmlns:core="sap.ui.core"
-    xmlns:f="sap.ui.layout.form"
->
+    xmlns:f="sap.ui.layout.form">
+
     <Dialog id="createDialog" title="Registro">
         <content>
-            <f:SimpleForm
-                editable="true"
-                layout="ResponsiveGridLayout"
-            >
+            <f:SimpleForm editable="true" layout="ResponsiveGridLayout">
                 <f:content>
-                    <Label text="Sociedad" />
-                    <Input value="{createModel>/IDSOCIEDAD}" editable="true" />
 
-                    <Label text="CEDI" />
-                    <Input value="{createModel>/IDCEDI}" editable="true" />
+                    <Label text="Sociedad" required="true" />
+                    <ComboBox
+  items="{cascadeModel>/sociedades}"
+  selectedKey="{createModel>/IDSOCIEDAD}"
+  selectionChange=".onSociedadChange"
+  placeholder="Selecciona una Sociedad">
+  <core:Item key="{cascadeModel>key}" text="{cascadeModel>text}" />
+</ComboBox>
 
-                    <Label text="Etiqueta" />
-                    <Input value="{createModel>/IDETIQUETA}" editable="true" />
+                    <Label text="CEDI" required="true" />
+                    <ComboBox
+  items="{cascadeModel>/cedis}"
+  selectedKey="{createModel>/IDCEDI}"
+  selectionChange=".onCediChange"
+  enabled="{= !!${createModel>/IDSOCIEDAD} }"
+  placeholder="Selecciona un CEDI">
+  <core:Item key="{cascadeModel>key}" text="{cascadeModel>text}" />
+</ComboBox>
 
-                    <Label text="Valor" />
-                    <Input value="{createModel>/IDVALOR}" editable="true" />
+                    <Label text="Etiqueta" required="true" />
+                    <ComboBox
+  items="{cascadeModel>/etiquetas}"
+  selectedKey="{createModel>/IDETIQUETA}"
+  selectionChange=".onEtiquetaChange"
+  enabled="{= !!${createModel>/IDCEDI} }"
+  placeholder="Selecciona una Etiqueta">
+  <core:Item key="{cascadeModel>key}" text="{cascadeModel>text}" />
+</ComboBox>
+
+
+                    <Label text="Valor" required="true" />
+                    <ComboBox
+  items="{cascadeModel>/valores}"
+  selectedKey="{createModel>/IDVALOR}"
+  enabled="{= !!${createModel>/IDETIQUETA} }"
+  placeholder="Selecciona un Valor">
+  <core:Item key="{cascadeModel>key}" text="{cascadeModel>text}" />
+</ComboBox>
 
                     <Label text="Grupo ET" />
                     <Input value="{createModel>/IDGRUPOET}" editable="true" />
@@ -29,12 +54,12 @@
                     <Input value="{createModel>/ID}" editable="true" />
 
                     <Label text="Información Adicional" required="true" />
-<TextArea 
-    value="{createModel>/INFOAD}" 
-    editable="true" 
-    rows="4" 
-    width="100%" 
-/>
+                    <TextArea 
+                        value="{createModel>/INFOAD}" 
+                        editable="true" 
+                        rows="4" 
+                        width="100%" 
+                    />
 
                 </f:content>
             </f:SimpleForm>
