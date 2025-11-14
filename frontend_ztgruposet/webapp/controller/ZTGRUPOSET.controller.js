@@ -43,32 +43,45 @@ sap.ui.define([
     _aDialogFilters:  [],
     _aQuickFilters:   [],
     _oFilterDialog:   null,
+onInit() {
 
-    onInit() {
-      
-      this.getView().setModel(new JSONModel({}), "updateModel");// modelo para operaciones de update/create
-      this.getView().setModel(new JSONModel({}), "createModel");
-      this.getView().setModel(new JSONModel({ state: false }), "dbServerSwitch"); // contenido del dbServerSwitch
-      this.getView().setModel(new JSONModel({ text: "" }), "infoAd"); // Modelo para el popover de Info Adicional
-      this._initFilterModel(); // Modelo para el diálogo de filtros
+    // Modelos existentes
+    this.getView().setModel(new JSONModel({}), "updateModel");
+    this.getView().setModel(new JSONModel({}), "createModel");
+    this.getView().setModel(new JSONModel({ state: false }), "dbServerSwitch");
+    this.getView().setModel(new JSONModel({ text: "" }), "infoAd");
 
-  this.getView().setModel(new JSONModel({
-    fullData: [],
-    sociedades: [],
-    cedis: [],
-    etiquetas: [],
-    valores: []
-  }), "cascadeModel");
-      this._aCatalogData = [];
+    // Modelo del diálogo de filtros globales (ya existía)
+    this._initFilterModel();
 
-      // Propiedades para la paginación personalizada
-      this._aAllItems = [];
-      this._aFilteredItems = []; // Items después de filtrar/ordenar
-      this._iCurrentPage = 1;
-      this._iPageSize = 5;
-      this._loadData(); 
-      
-    },
+    // 👉 Modelo del modal de filtros de ETIQUETAS
+    this.getView().setModel(new JSONModel({
+        selectedDateRange: "ALL",
+        colecciones: [],
+        secciones: []
+    }), "etiquetaFilterModel");
+
+    // Modelo para cascadas
+    this.getView().setModel(new JSONModel({
+        fullData: [],
+        sociedades: [],
+        cedis: [],
+        etiquetas: [],
+        valores: []
+    }), "cascadeModel");
+
+    this._aCatalogData = [];
+
+    // Propiedades de paginación
+    this._aAllItems = [];
+    this._aFilteredItems = [];
+    this._iCurrentPage = 1;
+    this._iPageSize = 5;
+
+    // Carga inicial
+    this._loadData();
+},
+
     
     _initFilterModel: function() {
       const oFilterModel = new JSONModel({
@@ -523,14 +536,21 @@ const url = `${sBaseUrl}?ProcessType=GetAll&LoggedUser=${sLoggedUser}&DBServer=$
       }
 
       // ETIQUETAS
-      if (item.IDETIQUETA && !etiquetas.some((e) => e.key === item.IDETIQUETA)) {
-        etiquetas.push({
-          key: item.IDETIQUETA,
-          text: item.ETIQUETA || item.IDETIQUETA,
-          IDSOCIEDAD: item.IDSOCIEDAD,
-          IDCEDI: item.IDCEDI,
-        });
+      // Guardar etiqueta COMPLETA en etiquetasAll
+      if (item.IDETIQUETA && !etiquetas.some((e) => e.IDETIQUETA === item.IDETIQUETA)) {
+          etiquetas.push(item);  // <-- Guardar el objeto COMPLETO
       }
+
+      const etiquetasSimplificadas = etiquetas.map(e => ({
+    key: e.IDETIQUETA,
+    text: e.ETIQUETA || e.IDETIQUETA,
+    IDSOCIEDAD: e.IDSOCIEDAD,
+    IDCEDI: e.IDCEDI
+}));
+
+oModel.setProperty("/etiquetas", etiquetasSimplificadas);
+oModel.setProperty("/etiquetasAll", etiquetas); // <-- GUARDAR OBJETO COMPLETO
+
 
       // VALORES anidados
       if (Array.isArray(item.valores)) {
@@ -625,6 +645,10 @@ onCediChange: function (oEvent) {
 
   console.log("🟩 Etiquetas filtradas:", filteredEtiquetas);
   oModel.setProperty("/etiquetas", filteredEtiquetas);
+  console.log(">>> etiquetasAll:", oModel.getProperty("/etiquetasAll"));
+console.log(">>> etiquetas filtradas:", oModel.getProperty("/etiquetas"));
+console.log(">>> createModel:", this.getView().getModel("createModel").getData());
+
 },
 
 onEtiquetaChange: function (oEvent) {
@@ -734,6 +758,92 @@ onEtiquetaChange: function (oEvent) {
             }
             return this._oUpdateDialog;
         },
+
+        //======= Filtros para el campo de etiquetas =======
+    
+        _getEtiquetaFilterDialog: function () {
+            if (!this._oEtiquetaFilterDialog) {
+                this._oEtiquetaFilterDialog = Fragment.load({
+                    id: this.getView().getId(),   // prefija con el ID del view
+                    name: "webapp.view.fragments.EtiquetaFilterDialog",
+                    controller: this
+                })
+                .then(oDialog => {
+                    this.getView().addDependent(oDialog);
+                    return oDialog;
+                });
+            }
+            return this._oEtiquetaFilterDialog;
+        },
+
+        // ¡ESTA ES LA FUNCIÓN QUE LLAMA TU BOTÓN!
+        onOpenEtiquetaFilter: function () {
+            const oCascadeModel = this.getView().getModel("cascadeModel");
+            const oFilterModel = this.getView().getModel("etiquetaFilterModel");
+            
+            // 1. Obtener la lista de etiquetas YA FILTRADAS (por Sociedad y CEDI)
+            // Esta es la lista que actualmente está en el ComboBox de Etiquetas
+            const aEtiquetasActuales = oCascadeModel.getProperty("/etiquetas");
+            
+            if (!aEtiquetasActuales || aEtiquetasActuales.length === 0) {
+                MessageToast.show("No hay etiquetas para filtrar.");
+                return;
+            }
+
+            // 2. Necesitamos encontrar los datos completos de estas etiquetas
+            //    (para obtener sus 'COLECCION' y 'SECCION' de la lista maestra)
+            const aEtiquetasCompletas = aEtiquetasActuales.map(etiqueta => {
+                // Buscamos en la lista maestra que cargamos al inicio
+                return this._aCatalogData.find(item => item.IDETIQUETA === etiqueta.key);
+            }).filter(item => !!item); // Filtra los 'undefined' (si no se encuentra)
+
+            // 3. Extraer listas únicas de Colección y Sección
+            const aColeccionesUnicas = [...new Set(aEtiquetasCompletas.map(item => item.COLECCION).filter(c => !!c))];
+            const aSeccionesUnicas = [...new Set(aEtiquetasCompletas.map(item => item.SECCION).filter(s => !!s))];
+
+            // 4. Formatear para las listas (y preservar selecciones previas)
+            // Obtenemos las selecciones anteriores del modelo
+            const aOldSeleccion = oFilterModel.getData();
+            const aOldColecciones = aOldSeleccion.colecciones.filter(c => c.selected).map(c => c.text);
+            const aOldSecciones = aOldSeleccion.secciones.filter(s => s.selected).map(s => s.text);
+
+            oFilterModel.setProperty("/colecciones", aColeccionesUnicas.map(c => {
+                return { text: c, selected: aOldColecciones.includes(c) };
+            }));
+            oFilterModel.setProperty("/secciones", aSeccionesUnicas.map(s => {
+                return { text: s, selected: aOldSecciones.includes(s) };
+            }));
+
+            // 5. Abrir el diálogo
+            this._getEtiquetaFilterDialog().then(oDialog => {
+                oDialog.open();
+            });
+        },
+
+        // Se llama al presionar "Cancelar" en el pop-up de filtros
+        onCancelEtiquetaFilters: function () {
+            this._getEtiquetaFilterDialog().then(oDialog => {
+                oDialog.close();
+            });
+        },
+
+        // Se llama al presionar "Aplicar Filtros" en el pop-up de filtros
+        onApplyEtiquetaFilters: function () {
+
+    const coleccionList = this.byId("etiquetaFilter--coleccionFilterList");
+    const seccionList   = this.byId("etiquetaFilter--seccionFilterList");
+
+    const coleccionItems = coleccionList ? coleccionList.getSelectedItems() : [];
+    const seccionItems   = seccionList ? seccionList.getSelectedItems() : [];
+
+    const coleccionesSel = coleccionItems.map(i => i.getTitle());
+    const seccionesSel  = seccionItems.map(i => i.getTitle());
+
+    console.log("Colecciones seleccionadas:", coleccionesSel);
+    console.log("Secciones seleccionadas:", seccionesSel);
+
+    this._applyEtiquetaFilters(); 
+},
 
     // ==== DIÁLOGO DE CONFIGURACIÓN ====
     _getConfigDialog: function () {
@@ -1113,6 +1223,271 @@ onEtiquetaChange: function (oEvent) {
       } else {
         oView.byId("txtPageInfo").setText("No hay registros");
       }
+    },
+
+    _resetEtiquetaCombo: function () {
+    const oView = this.getView();
+    const oCascade = oView.getModel("cascadeModel");
+    const oCreate = oView.getModel("createModel");
+
+    const etiquetasAll = oCascade.getProperty("/etiquetasAll") || [];
+    const selectedSoc = oCreate.getProperty("/IDSOCIEDAD");
+    const selectedCedi = oCreate.getProperty("/IDCEDI");
+
+    // Si hay Soc/Cedi seleccionados, filtrar por ellos; si no, mostrar todo
+    const base = etiquetasAll.filter(e => {
+        if (selectedSoc && selectedCedi) {
+            return String(e.IDSOCIEDAD) === String(selectedSoc) &&
+                   String(e.IDCEDI) === String(selectedCedi);
+        }
+        return true;
+    });
+
+    // Mapear al formato que espera el ComboBox
+    const mapped = base.map(e => ({
+        key: e.IDETIQUETA || e.key || e._id || e.ID,
+        text: e.ETIQUETA || e.text || e.IDETIQUETA,
+        IDSOCIEDAD: e.IDSOCIEDAD,
+        IDCEDI: e.IDCEDI
+    }));
+
+    oCascade.setProperty("/etiquetas", mapped);
+},
+
+    onEtiquetaFilterPress: function () {
+    // 1) resetar la selección de rango a ALL
+    const oFilterModel = this.getView().getModel("etiquetaFilterModel");
+    if (oFilterModel) oFilterModel.setProperty("/selectedDateRange", "ALL");
+
+    // 2) abrir fragment con id prefijado (si no está cargado lo carga)
+    if (!this._oEtiquetaFilterDialog) {
+        Fragment.load({
+            id: this.getView().getId() + "--etiquetaFilter",
+            name: "com.itt.ztgruposet.frontendztgruposet.view.fragments.EtiquetaFilterDialog",
+            controller: this
+        }).then((oDialog) => {
+            this._oEtiquetaFilterDialog = oDialog;
+            this.getView().addDependent(oDialog);
+
+            // Cargar colecciones/secciones para la UI
+            this._loadEtiquetaFilters();
+
+            // Importante: reponer /etiquetas para que el Combo no quede vacío
+            this._resetEtiquetaCombo();
+
+            oDialog.open();
+        }).catch(err => {
+            console.error("Error cargando fragment etiquetaFilter:", err);
+        });
+    } else {
+        // Ya cargado: recargar datos y reponer etiquetas
+        this._loadEtiquetaFilters();
+        this._resetEtiquetaCombo();
+        this._oEtiquetaFilterDialog.open();
     }
+},
+
+
+_loadEtiquetaFilters: function () {
+    const oCascade = this.getView().getModel("cascadeModel");
+    const oFilterModel = this.getView().getModel("etiquetaFilterModel");
+
+    const etiquetasAll = oCascade.getProperty("/etiquetasAll") || [];
+
+    // Colecciones únicas
+    const colecciones = [...new Set(etiquetasAll.map(e => e.COLECCION))]  
+        .filter(v => v)  
+        .map(v => ({ text: v }));
+
+    // Secciones únicas
+    const secciones = [...new Set(etiquetasAll.map(e => e.SECCION))]
+        .filter(v => v)
+        .map(v => ({ text: v }));
+
+    oFilterModel.setProperty("/colecciones", colecciones);
+    oFilterModel.setProperty("/secciones", secciones);
+},
+
+onCancelEtiquetaFilters: function () {
+    const oFilterModel = this.getView().getModel("etiquetaFilterModel");
+    if (oFilterModel) oFilterModel.setProperty("/selectedDateRange", "ALL");
+
+    // repoblar etiquetas con la vista actual (evitar que al reabrir quede vacío)
+    this._resetEtiquetaCombo();
+
+    if (this._oEtiquetaFilterDialog && this._oEtiquetaFilterDialog.isOpen()) {
+        this._oEtiquetaFilterDialog.close();
+    }
+},
+
+_getRecordDate: function (oItem) {
+    try {
+        // 1) DETAIL_ROW current (REGDATE)
+        if (oItem && oItem.DETAIL_ROW && Array.isArray(oItem.DETAIL_ROW.DETAIL_ROW_REG)) {
+            const curr = oItem.DETAIL_ROW.DETAIL_ROW_REG.find(r => (r.CURRENT === true || r.CURRENT === "true"));
+            if (curr && curr.REGDATE) {
+                const d = new Date(curr.REGDATE);
+                if (!isNaN(d)) return d;
+            }
+        }
+
+        // 2) updatedAt (campo ISO)
+        if (oItem && oItem.updatedAt) {
+            const d = new Date(oItem.updatedAt);
+            if (!isNaN(d)) return d;
+        }
+
+        // 3) createdAt
+        if (oItem && oItem.createdAt) {
+            const d = new Date(oItem.createdAt);
+            if (!isNaN(d)) return d;
+        }
+
+        // 4) algunos registros de tu otro endpoint usan FECHAULTMOD/HORAULTMOD combinadas (por si aplica)
+        if (oItem && oItem.FECHAULTMOD && oItem.HORAULTMOD) {
+            const d = new Date(`${oItem.FECHAULTMOD}T${oItem.HORAULTMOD}`);
+            if (!isNaN(d)) return d;
+        }
+    } catch (e) {
+        console.warn("Error en _getRecordDate:", e);
+    }
+    return null;
+},
+
+_filterByMonths: function (iMonths) {
+    const oCascadeModel = this.getView().getModel("cascadeModel");
+    const aAllItems = oCascadeModel.getProperty("/etiquetasAll");
+
+    const today = new Date();
+    const limitDate = new Date();
+    limitDate.setMonth(limitDate.getMonth() - iMonths);
+
+    const aFiltered = aAllItems.filter(item => {
+    const d = this._getRecordDate(item);
+    console.log("Etiqueta:", item.IDETIQUETA, "Fecha detectada:", d);
+    return d && d >= limitDate;
+});
+
+    oCascadeModel.setProperty("/etiquetas", aFiltered);
+    
+},
+onFechaSelectionChange: function (oEvent) {
+    const key = oEvent.getSource().getSelectedKey();
+
+    const oFilterModel = this.getView().getModel("etiquetaFilterModel");
+    oFilterModel.setProperty("/selectedDateRange", key);
+
+    this._applyEtiquetaFilters();
+},
+
+_applyEtiquetaFilters: async function () {
+    // 1) obtener modelos
+    const oCascade = this.getView().getModel("cascadeModel");
+    const oFilterModel = this.getView().getModel("etiquetaFilterModel");
+    const oCreateModel = this.getView().getModel("createModel");
+
+    // 2) asegurar que /etiquetasAll exista (si no, cargar)
+    let etiquetasAll = oCascade.getProperty("/etiquetasAll") || [];
+    if (!Array.isArray(etiquetasAll) || etiquetasAll.length === 0) {
+        // intentar cargar catálogos si todavía no se hizo
+        try {
+            await this._loadExternalCatalogData();
+            etiquetasAll = this.getView().getModel("cascadeModel").getProperty("/etiquetasAll") || [];
+        } catch (e) {
+            console.warn("No se pudo cargar etiquetasAll automáticamente:", e);
+        }
+    }
+
+    console.log("💾 etiquetasAll:", etiquetasAll);
+
+    const selectedSoc = oCreateModel.getProperty("/IDSOCIEDAD");
+    const selectedCedi = oCreateModel.getProperty("/IDCEDI");
+
+    // Si no hay sociedad/cedi no hay sentido en filtrar
+    if (!selectedSoc || !selectedCedi) {
+        MessageToast.show("Selecciona Sociedad y CEDI antes de aplicar filtros.");
+        return;
+    }
+
+    // Encontrar listas dentro del dialog (robusto)
+    const oDialog = this._oEtiquetaFilterDialog;
+    const oColeccionList = this.byId("etiquetaFilter--coleccionFilterList");
+    const oSeccionList   = this.byId("etiquetaFilter--seccionFilterList");
+
+
+    const coleccionItems = oColeccionList ? oColeccionList.getSelectedItems() : [];
+    const seccionItems   = oSeccionList ? oSeccionList.getSelectedItems() : [];
+
+    const coleccionesSel = coleccionItems.map(i => i.getTitle());
+    const seccionesSel   = seccionItems.map(i => i.getTitle());
+
+    console.log("Colecciones seleccionadas:", coleccionesSel);
+    console.log("Secciones seleccionadas:", seccionesSel);
+
+    // --------------- Filtrado base por SOC y CEDI (usar string-compare seguro)
+    let filtered = etiquetasAll.filter(e =>
+        String(e.IDSOCIEDAD) === String(selectedSoc) &&
+        String(e.IDCEDI) === String(selectedCedi)
+    );
+
+    console.log("Después SOC+CEDI count:", filtered.length);
+
+    // --------------- Filtrar por colecciones
+    if (coleccionesSel.length > 0) {
+        filtered = filtered.filter(e => coleccionesSel.includes(e.COLECCION));
+        console.log("Después Colección count:", filtered.length);
+    }
+
+    // --------------- Filtrar por secciones
+    if (seccionesSel.length > 0) {
+        filtered = filtered.filter(e => seccionesSel.includes(e.SECCION));
+        console.log("Después Sección count:", filtered.length);
+    }
+
+    // --------------- Filtrar por fecha
+    const dateRange = oFilterModel.getProperty("/selectedDateRange") || "ALL";
+    if (dateRange !== "ALL") {
+        const months = parseInt(dateRange, 10);
+        const limit = new Date();
+        limit.setMonth(limit.getMonth() - months);
+        console.log("Filtrando por fecha. Límite:", limit.toISOString());
+
+        // usar la función robusta para extraer fecha
+        filtered = filtered.filter(e => {
+            const d = this._getRecordDate(e);
+            console.log("Comparando etiqueta:", e.IDETIQUETA, "fecha detectada:", d);
+            return d && d >= limit;
+        });
+
+        console.log("Después Fecha count:", filtered.length);
+    }
+
+    // Aplicar resultado al combo
+    oCascade.setProperty("/etiquetas", filtered.map(e => ({
+    key: e.IDETIQUETA,
+    text: e.ETIQUETA || e.IDETIQUETA,
+    IDSOCIEDAD: e.IDSOCIEDAD,
+    IDCEDI: e.IDCEDI
+})));
+
+
+    // Reset selección del combo
+    oCreateModel.setProperty("/IDETIQUETA", null);
+
+    // Cerrar diálogo si está abierto
+    if (this._oEtiquetaFilterDialog && this._oEtiquetaFilterDialog.isOpen && this._oEtiquetaFilterDialog.isOpen()) {
+        this._oEtiquetaFilterDialog.close();
+    }
+
+    console.log("Resultado final filtrado:", filtered);
+},
+
+_refreshTable: function () {
+    const oTable = this.byId("idTabla"); // ID real
+    const oModel = new JSONModel(this._aFilteredItems);
+
+    oTable.setModel(oModel, "tableModel");
+},
+
   });
 });
