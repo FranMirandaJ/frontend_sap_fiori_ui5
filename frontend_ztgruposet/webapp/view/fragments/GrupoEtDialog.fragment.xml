@@ -10,7 +10,7 @@
         selectedKey="{grupoEtModel>/selectedEtiqueta}"
         selectionChange=".onGrupoEtiquetaChange"
         placeholder="Selecciona una Etiqueta">
-        <core:Item key="{cascadeModel>key}" text="{cascadeModel>key}" />
+        <core:Item key="{cascadeModel>key}" text="{cascadeModel>text}" />
       </ComboBox>
 
         <Label text="Grupo ET - Valor" class="sapUiMediumMarginTop"/>
@@ -22,7 +22,7 @@
         selectionChange=".onGrupoValorChange"
         enabled="{= !!${grupoEtModel>/selectedEtiqueta} }"
         placeholder="Selecciona un Valor">
-        <core:Item key="{grupoEtModel>key}" text="{grupoEtModel>key}" />
+        <core:Item key="{grupoEtModel>key}" text="{grupoEtModel>text}" />
       </ComboBox>
 
 

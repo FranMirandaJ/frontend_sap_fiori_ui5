@@ -10,7 +10,7 @@ sap.ui.define([
   "sap/m/MessageToast",
   "sap/m/Text",
   "sap/ui/core/Fragment"
-], (Controller, JSONModel, Filter, FilterOperator, Dialog, Button, library,MessageBox, MessageToast, Text, Fragment) => {
+], (Controller, JSONModel, Filter, FilterOperator, Dialog, Button, library, MessageBox, MessageToast, Text, Fragment) => {
   "use strict";
 
   const ButtonType = library.ButtonType;
@@ -32,65 +32,65 @@ sap.ui.define([
 
 
     onAvatarPressed: function () {
-			MessageToast.show("Avatar pressed!");
-		},
+      MessageToast.show("Avatar pressed!");
+    },
 
-		onLogoPressed: function () {
-			MessageToast.show("Logo pressed!");
-		},
+    onLogoPressed: function () {
+      MessageToast.show("Logo pressed!");
+    },
 
-    _aSearchFilters:  [],
-    _aDialogFilters:  [],
-    _aQuickFilters:   [],
-    _oFilterDialog:   null,
-onInit() {
+    _aSearchFilters: [],
+    _aDialogFilters: [],
+    _aQuickFilters: [],
+    _oFilterDialog: null,
+    onInit() {
 
-    // Modelos existentes
-    this.getView().setModel(new JSONModel({}), "updateModel");
-    this.getView().setModel(new JSONModel({}), "createModel");
-    this.getView().setModel(new JSONModel({ state: false }), "dbServerSwitch");
-    this.getView().setModel(new JSONModel({ text: "" }), "infoAd");
+      // Modelos existentes
+      this.getView().setModel(new JSONModel({}), "updateModel");
+      this.getView().setModel(new JSONModel({}), "createModel");
+      this.getView().setModel(new JSONModel({ state: false }), "dbServerSwitch");
+      this.getView().setModel(new JSONModel({ text: "" }), "infoAd");
 
-    // Modelo del diálogo de filtros globales (ya existía)
-    this._initFilterModel();
+      // Modelo del diálogo de filtros globales (ya existía)
+      this._initFilterModel();
 
-    // 👉 Modelo del modal de filtros de ETIQUETAS
-    this.getView().setModel(new JSONModel({
+      // 👉 Modelo del modal de filtros de ETIQUETAS
+      this.getView().setModel(new JSONModel({
         selectedDateRange: "ALL",
         colecciones: [],
         secciones: []
-    }), "etiquetaFilterModel");
+      }), "etiquetaFilterModel");
 
-    // Modelo para cascadas
-    this.getView().setModel(new JSONModel({
+      // Modelo para cascadas
+      this.getView().setModel(new JSONModel({
         fullData: [],
         sociedades: [],
         cedis: [],
         etiquetas: [],
         valores: []
-    }), "cascadeModel");
+      }), "cascadeModel");
 
-    this.getView().setModel(new JSONModel({
-    selectedEtiqueta: null,
-    selectedValor: null,
-    valoresList: [],
-    display: ""
-    }), "grupoEtModel");
+      this.getView().setModel(new JSONModel({
+        selectedEtiqueta: null,
+        selectedValor: null,
+        valoresList: [],
+        display: ""
+      }), "grupoEtModel");
 
-    this._aCatalogData = [];
+      this._aCatalogData = [];
 
-    // Propiedades de paginación
-    this._aAllItems = [];
-    this._aFilteredItems = [];
-    this._iCurrentPage = 1;
-    this._iPageSize = 5;
+      // Propiedades de paginación
+      this._aAllItems = [];
+      this._aFilteredItems = [];
+      this._iCurrentPage = 1;
+      this._iPageSize = 5;
 
-    // Carga inicial
-    this._loadData();
-},
+      // Carga inicial
+      this._loadData();
+    },
 
-    
-    _initFilterModel: function() {
+
+    _initFilterModel: function () {
       const oFilterModel = new JSONModel({
         searchQuery: "",
         fields: [
@@ -127,12 +127,12 @@ onInit() {
       oView.setBusy(true);
       try {
         // Usa el proxy del ui5.yaml: /api -> http://localhost:4004
-      const url = this._getApiParams("GetAll");
+        const url = this._getApiParams("GetAll");
 
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}) 
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({})
         });
         if (!res.ok) throw new Error("HTTP " + res.status);
 
@@ -159,7 +159,7 @@ onInit() {
           USUARIOMOD: x.USUARIOMOD,
           ACTIVO: x.ACTIVO,
           BORRADO: x.BORRADO,
-          EstadoTxt: x.ACTIVO ? "ACTIVO" : "INACTIVO",          
+          EstadoTxt: x.ACTIVO ? "ACTIVO" : "INACTIVO",
           EstadoUI5: x.ACTIVO ? "Success" : "Error",
           EstadoIcon: x.ACTIVO ? "sap-icon://sys-enter-2" : "sap-icon://status-negative",
           EstadoIconColor: x.ACTIVO ? "Positive" : "Negative",
@@ -180,9 +180,9 @@ onInit() {
       }
     },
 
-      onSelectionChange: function () {
+    onSelectionChange: function () {
       const item = this.byId("tblGrupos").getSelectedItem();
-      const rec  = item ? item.getBindingContext("grupos").getObject() : null;
+      const rec = item ? item.getBindingContext("grupos").getObject() : null;
 
       this.byId("btnEdit").setEnabled(!!rec);
       this.byId("btnDelete").setEnabled(!!rec);
@@ -199,37 +199,37 @@ onInit() {
 
     onSearch1: function (oEvent) {
       var sQuery =
-          oEvent.getParameter("newValue") ||
-          oEvent.getParameter("query") ||
-          oEvent.getSource().getValue();
+        oEvent.getParameter("newValue") ||
+        oEvent.getParameter("query") ||
+        oEvent.getSource().getValue();
 
-      var oTable   = this.byId("tblGrupos");
+      var oTable = this.byId("tblGrupos");
       var oBinding = oTable.getBinding("items");
 
       if (!sQuery) {
-          oBinding.filter([]);
-          return;
+        oBinding.filter([]);
+        return;
       }
 
       var aFilters = [];
 
       // 👉 Si lo que escribió puede ser número, filtramos numéricos con EQ
       if (!isNaN(sQuery)) {
-          var iQuery = parseInt(sQuery, 10);
+        var iQuery = parseInt(sQuery, 10);
 
-          aFilters.push(new Filter("IDSOCIEDAD", FilterOperator.EQ, iQuery));
-          aFilters.push(new Filter("IDCEDI",     FilterOperator.EQ, iQuery));
-          aFilters.push(new Filter("ID",         FilterOperator.EQ, iQuery));
+        aFilters.push(new Filter("IDSOCIEDAD", FilterOperator.EQ, iQuery));
+        aFilters.push(new Filter("IDCEDI", FilterOperator.EQ, iQuery));
+        aFilters.push(new Filter("ID", FilterOperator.EQ, iQuery));
       }
 
       // 👉 Campos STRING con Contains (sin problema)
-      aFilters.push(new Filter("IDETIQUETA",       FilterOperator.Contains, sQuery));
-    
+      aFilters.push(new Filter("IDETIQUETA", FilterOperator.Contains, sQuery));
+
 
       // OR entre todos los filtros
       var oFilter = new Filter({
-          filters: aFilters,
-          and: false
+        filters: aFilters,
+        and: false
       });
 
       oBinding.filter(oFilter);
@@ -240,9 +240,9 @@ onInit() {
       var aFilters = [];
 
       if (sKey === "ACT") {
-          aFilters.push(new Filter("EstadoTxt", FilterOperator.EQ, "Activo"));
+        aFilters.push(new Filter("EstadoTxt", FilterOperator.EQ, "Activo"));
       } else if (sKey === "INA") {
-          aFilters.push(new Filter("EstadoTxt", FilterOperator.EQ, "Inactivo"));
+        aFilters.push(new Filter("EstadoTxt", FilterOperator.EQ, "Inactivo"));
       }
       // sKey === "ALL" => sin filtro de estado
 
@@ -250,7 +250,7 @@ onInit() {
       this.byId("tblGrupos").getBinding("items").filter(aFilters);
     },
 
-        // === Helper: obtener el registro seleccionado de la tabla ===
+    // === Helper: obtener el registro seleccionado de la tabla ===
     _getSelectedRecord: function () {
       const oTable = this.byId("tblGrupos");
       const oItem = oTable.getSelectedItem();
@@ -263,35 +263,35 @@ onInit() {
       // El backend (en tu screenshot) espera exactamente estas claves:
       return {
         "IDSOCIEDAD": rec.IDSOCIEDAD,
-        "IDCEDI":     rec.IDCEDI,
+        "IDCEDI": rec.IDCEDI,
         "IDETIQUETA": rec.IDETIQUETA,
-        "IDVALOR":    rec.IDVALOR,
-        "IDGRUPOET":  rec.IDGRUPOET,
-        "ID":         rec.ID
+        "IDVALOR": rec.IDVALOR,
+        "IDGRUPOET": rec.IDGRUPOET,
+        "ID": rec.ID
       };
     },
 
-      _getApiParams: function (sProcessType) { // <-- 1. AÑADIMOS UN PARÁMETRO
-                  const oSwitchModel = this.getView().getModel("dbServerSwitch");
-                  const bIsAzure = oSwitchModel.getProperty("/state"); 
-                  
-                  const sDBServer = bIsAzure ? "Azure" : "Mongodb"; 
-                  const sLoggedUser = "FMIRANDAJ"; // Asegúrate que este sea el usuario correcto
+    _getApiParams: function (sProcessType) { // <-- 1. AÑADIMOS UN PARÁMETRO
+      const oSwitchModel = this.getView().getModel("dbServerSwitch");
+      const bIsAzure = oSwitchModel.getProperty("/state");
 
-                  // 2. ¡LA SOLUCIÓN! Usamos la URL completa de Render
-                  const sBaseUrl = "https://app-restful-sap-cds.onrender.com/api/security/gruposet/crud";
+      const sDBServer = bIsAzure ? "Azure" : "Mongodb";
+      const sLoggedUser = "FMIRANDAJ"; // Asegúrate que este sea el usuario correcto
 
-                  // 3. Devolvemos la URL completa con todos los parámetros
-                  return `${sBaseUrl}?ProcessType=${sProcessType}&DBServer=${sDBServer}&LoggedUser=${sLoggedUser}`;
-              },
+      // 2. ¡LA SOLUCIÓN! Usamos la URL completa de Render
+      const sBaseUrl = "http://localhost:3333/api/security/gruposet/crud";
 
-  // === Acción: DESACTIVAR (Delete lógico) ===
+      // 3. Devolvemos la URL completa con todos los parámetros
+      return `${sBaseUrl}?ProcessType=${sProcessType}&DBServer=${sDBServer}&LoggedUser=${sLoggedUser}`;
+    },
+
+    // === Acción: DESACTIVAR (Delete lógico) ===
     onDeactivePress: async function () {
       const rec = this._getSelectedRecord();
       if (!rec) {
         MessageToast.show("Selecciona un registro primero.");
         return;
-    }
+      }
 
       const url = this._getApiParams("DeleteOne");
       const payload = this._buildDeletePayload(rec);
@@ -318,13 +318,13 @@ onInit() {
         }
       };
 
-    MessageBox.confirm(
-      `¿Desactivar el grupo "${rec.IDETIQUETA}" (ID ${rec.ID})?`,
-      {
-        title: "Confirmar desactivación",
-        actions: [MessageBox.Action.OK, MessageBox.Action.CANCEL],
-        onClose: (act) => { if (act === MessageBox.Action.OK) doCall(); }
-      }
+      MessageBox.confirm(
+        `¿Desactivar el grupo "${rec.IDETIQUETA}" (ID ${rec.ID})?`,
+        {
+          title: "Confirmar desactivación",
+          actions: [MessageBox.Action.OK, MessageBox.Action.CANCEL],
+          onClose: (act) => { if (act === MessageBox.Action.OK) doCall(); }
+        }
       );
     },
     //activar con updateOne ///////////
@@ -348,8 +348,8 @@ onInit() {
 
       this.getView().setBusy(true);
       try {
-        const res  = await fetch(url, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload) });
-        const json = await res.json().catch(()=>({}));
+        const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+        const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error("HTTP " + res.status + (json.messageUSR ? " - " + json.messageUSR : ""));
 
         sap.m.MessageToast.show("Registro ACTIVADO.");
@@ -396,490 +396,731 @@ onInit() {
 
 
     onSaveCreate: async function () {
-      
-     const oCreateModel = this.getView().getModel("createModel");
-     const oCreate = oCreateModel.getData(); // Datos del formulario
-    
-    try {
+
+      const oCreateModel = this.getView().getModel("createModel");
+      const oCreate = oCreateModel.getData(); // Datos del formulario
+
+      try {
         const payload = {
-                IDSOCIEDAD: oCreate.IDSOCIEDAD,
-                IDCEDI: oCreate.IDCEDI,
-                IDETIQUETA: oCreate.IDETIQUETA,
-                IDVALOR: oCreate.IDVALOR,
-                IDGRUPOET: oCreate.IDGRUPOET,
-                ID:oCreate.ID,
-                INFOAD: oCreate.INFOAD,
-                ACTIVO: true,
-                BORRADO:false 
+          IDSOCIEDAD: oCreate.IDSOCIEDAD,
+          IDCEDI: oCreate.IDCEDI,
+          IDETIQUETA: oCreate.IDETIQUETA,
+          IDVALOR: oCreate.IDVALOR,
+          IDGRUPOET: oCreate.IDGRUPOET,
+          ID: oCreate.ID,
+          INFOAD: oCreate.INFOAD,
+          ACTIVO: true,
+          BORRADO: false
         };
 
-        const sApiParams = this._getApiParams(); 
-        const url = this._getApiParams("Create"); const res = await fetch(url, { 
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        const sApiParams = this._getApiParams();
+        const url = this._getApiParams("Create"); const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
         });
         const json = await res.json();
 
         if (!res.ok || json.error) {
-            MessageBox.error(json.error || "No se pudo crear el registro.");
-            return;
+          MessageBox.error(json.error || "No se pudo crear el registro.");
+          return;
         }
 
         MessageToast.show("Grupo creado correctamente.");
-          this.getView().getModel("createModel").setData({});
-          this._getCreateDialog().then(oDialog => {
-                  oDialog.close();
-              });
+        this.getView().getModel("createModel").setData({});
+        this._getCreateDialog().then(oDialog => {
+          oDialog.close();
+        });
         await this._loadData();
 
-    } catch (error) {
+      } catch (error) {
         console.error("Error al crear el grupo:", error);
         MessageBox.error("Error inesperado al crear el grupo.");
-    }
-},
+      }
+    },
 
-    
-        // (Esta es la función para el botón "Cancelar" del pop-up)
-      onCancelCreate: function () {
-         this.getView().getModel("createModel").setData({}); 
 
-              this._getCreateDialog().then(oDialog => {
-                  oDialog.close();
-              });
-          },
+    // (Esta es la función para el botón "Cancelar" del pop-up)
+    onCancelCreate: function () {
+      this.getView().getModel("createModel").setData({});
 
-            _getCreateDialog: function () {
-            if (!this._oCreateDialog) {
-                this._oCreateDialog = Fragment.load({
-                    id: this.getView().getId(),
-                    name: "com.itt.ztgruposet.frontendztgruposet.view.fragments.CreateDialog",
-                    controller: this
-                }).then(oDialog => {
-                    this.getView().addDependent(oDialog);
-                    return oDialog;
-                });
-            }
-            return this._oCreateDialog;
-        },
+      this._getCreateDialog().then(oDialog => {
+        oDialog.close();
+      });
+    },
 
-_loadExternalCatalogData: async function () {
-  const oView = this.getView();
-  const oModel = new sap.ui.model.json.JSONModel({
-    sociedades: [],
-    cedisAll: [],
-    etiquetasAll: [],
-    valoresAll: [],
-    cedis: [],
-    etiquetas: [],
-    valores: []
-  });
-  oView.setModel(oModel, "cascadeModel");
+    _getCreateDialog: function () {
+      if (!this._oCreateDialog) {
+        this._oCreateDialog = Fragment.load({
+          id: this.getView().getId(),
+          name: "com.itt.ztgruposet.frontendztgruposet.view.fragments.CreateDialog",
+          controller: this
+        }).then(oDialog => {
+          this.getView().addDependent(oDialog);
+          return oDialog;
+        });
+      }
+      return this._oCreateDialog;
+    },
 
-  const oSwitchModel = this.getView().getModel("dbServerSwitch");
-const bIsAzure = oSwitchModel.getProperty("/state"); 
+    _loadExternalCatalogData: async function () {
+      const oView = this.getView();
+      const oModel = new sap.ui.model.json.JSONModel({
+        sociedades: [],
+        cedisAll: [],
+        etiquetasAll: [],
+        valoresAll: [],
+        cedis: [],
+        etiquetas: [],
+        valores: []
+      });
+      oView.setModel(oModel, "cascadeModel");
 
-// 2. Definimos la base de la API del "otro team" (¡Esto usa el proxy!)
-const sBaseUrl = "http://localhost:3034/api/cat/crudLabelsValues";
+      const oSwitchModel = this.getView().getModel("dbServerSwitch");
+      const bIsAzure = oSwitchModel.getProperty("/state");
 
-// 3. Asignamos el DBServer correcto
-const sDBServer = bIsAzure ? "CosmosDB" : "MongoDB"; // <-- ¡Aquí está la magia!
-const sLoggedUser = "MIGUELLOPEZ";
+      // 2. Definimos la base de la API del "otro team" (¡Esto usa el proxy!)
+      const sBaseUrl = "http://localhost:3034/api/cat/crudLabelsValues";
 
-// 4. Construimos la URL final
-const url = `${sBaseUrl}?ProcessType=GetAll&LoggedUser=${sLoggedUser}&DBServer=${sDBServer}`;
+      // 3. Asignamos el DBServer correcto
+      const sDBServer = bIsAzure ? "CosmosDB" : "MongoDB"; // <-- ¡Aquí está la magia!
+      const sLoggedUser = "MIGUELLOPEZ";
 
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        operations: [
-          {
-            collection: "LabelsValues",
-            action: "GETALL",
-            payload: {}
+      // 4. Construimos la URL final
+      const url = `${sBaseUrl}?ProcessType=GetAll&LoggedUser=${sLoggedUser}&DBServer=${sDBServer}`;
+
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            operations: [
+              {
+                collection: "LabelsValues",
+                action: "GETALL",
+                payload: {}
+              }
+            ]
+          }),
+        });
+
+        const json = await res.json();
+        console.log("📥 Respuesta sin parsear:", json);
+
+        const registros = json?.data?.[0]?.dataRes || [];
+        console.log("✅ DataRes procesado:", registros);
+
+        if (!Array.isArray(registros) || registros.length === 0) {
+          console.warn("⚠️ No se encontraron registros en la respuesta");
+          return;
+        }
+
+        // 🔹 Construimos listas únicas
+        const sociedades = [];
+        const cedis = [];
+        const etiquetas = [];
+        const valores = [];
+
+        registros.forEach((item) => {
+          // SOCIEDADES
+          if (item.IDSOCIEDAD && !sociedades.some((s) => s.key === item.IDSOCIEDAD)) {
+            sociedades.push({
+              key: item.IDSOCIEDAD,
+              text: `Sociedad ${item.IDSOCIEDAD}`,
+            });
           }
-        ]
-      }),
-    });
 
-    const json = await res.json();
-    console.log("📥 Respuesta sin parsear:", json);
+          // CEDIS
+          if (
+            item.IDCEDI &&
+            !cedis.some((c) => c.key === item.IDCEDI && c.parentSoc === item.IDSOCIEDAD)
+          ) {
+            cedis.push({
+              key: item.IDCEDI,
+              text: `Cedi ${item.IDCEDI}`,
+              parentSoc: item.IDSOCIEDAD,
+            });
+          }
 
-    const registros = json?.data?.[0]?.dataRes || [];
-    console.log("✅ DataRes procesado:", registros);
+          // ETIQUETAS
+          // Guardar etiqueta COMPLETA en etiquetasAll
+          // ETIQUETAS (IDS reales + conservar COLECCION/SECCION para filtros)
+          if (item.IDETIQUETA && !etiquetas.some((e) => e.key === item.IDETIQUETA)) {
+            etiquetas.push({
+              key: item.IDETIQUETA,
+              text: item.IDETIQUETA,
+              IDETIQUETA: item.IDETIQUETA,
+              ETIQUETA: item.ETIQUETA,
+              IDSOCIEDAD: item.IDSOCIEDAD,
+              IDCEDI: item.IDCEDI,
+              COLECCION: item.COLECCION || "",
+              SECCION: item.SECCION || "",
+              _raw: item
+            });
+          }
 
-    if (!Array.isArray(registros) || registros.length === 0) {
-      console.warn("⚠️ No se encontraron registros en la respuesta");
-      return;
-    }
 
-    // 🔹 Construimos listas únicas
-    const sociedades = [];
-    const cedis = [];
-    const etiquetas = [];
-    const valores = [];
+          const etiquetasSimplificadas = etiquetas.map(e => ({
+            key: e.IDETIQUETA,
+            text: e.ETIQUETA || e.IDETIQUETA,
+            IDSOCIEDAD: e.IDSOCIEDAD,
+            IDCEDI: e.IDCEDI
+          }));
 
-    registros.forEach((item) => {
-      // SOCIEDADES
-      if (item.IDSOCIEDAD && !sociedades.some((s) => s.key === item.IDSOCIEDAD)) {
-        sociedades.push({
-          key: item.IDSOCIEDAD,
-          text: `Sociedad ${item.IDSOCIEDAD}`,
+          oModel.setProperty("/etiquetas", etiquetasSimplificadas);
+          oModel.setProperty("/etiquetasAll", etiquetas); // <-- GUARDAR OBJETO COMPLETO
+
+
+          // VALORES anidados
+          if (Array.isArray(item.valores)) {
+            item.valores.forEach((v) => {
+              valores.push({
+                key: v.IDVALOR,     // ID REAL
+                text: v.IDVALOR,
+                IDVALOR: v.IDVALOR,
+                VALOR: v.VALOR,
+                IDSOCIEDAD: v.IDSOCIEDAD,
+                IDCEDI: v.IDCEDI,
+                parentEtiqueta: item.IDETIQUETA
+              });
+            });
+          }
         });
+
+        console.log("✅ Sociedades cargadas:", sociedades);
+        console.log("✅ CEDIS cargados:", cedis);
+        console.log("✅ Etiquetas cargadas:", etiquetas);
+        console.log("✅ Valores cargados:", valores);
+
+        // 🔹 Actualizamos el modelo
+        oModel.setProperty("/sociedades", sociedades);
+        oModel.setProperty("/cedisAll", cedis);
+        oModel.setProperty("/etiquetasAll", etiquetas);
+        oModel.setProperty("/valoresAll", valores);
+
+      } catch (err) {
+        console.error("💥 Error al cargar catálogos:", err);
+      }
+    },
+
+
+
+    // --- PASO 1: Poblar Sociedades ---
+    _populateSociedades: function () {
+      const oCascadeModel = this.getView().getModel("cascadeModel");
+      // Usamos '...new Set' para obtener valores únicos de la lista maestra
+      const aNombresSoc = [...new Set(this._aCatalogData.map(item => item.IDSOCIEDAD))];
+      // Filtramos 'undefined' por si algún registro no tiene sociedad
+      const aSociedades = aNombresSoc.filter(id => id !== undefined).map(id => ({ key: id, text: id }));
+      oCascadeModel.setProperty("/sociedades", aSociedades);
+    },
+
+    // --- PASO 2: Evento al cambiar Sociedad ---
+    onSociedadChange: function (oEvent) {
+      const selectedSoc = oEvent.getSource().getSelectedKey();
+      const oCreateModel = this.getView().getModel("createModel");
+      const oModel = this.getView().getModel("cascadeModel");
+
+      console.log("✅ Sociedad seleccionada:", selectedSoc);
+
+      // Limpiar combos dependientes
+      oCreateModel.setProperty("/IDCEDI", null);
+      oCreateModel.setProperty("/IDETIQUETA", null);
+      oCreateModel.setProperty("/IDVALOR", null);
+
+      oModel.setProperty("/cedis", []);
+      oModel.setProperty("/etiquetas", []);
+      oModel.setProperty("/valores", []);
+
+      if (!selectedSoc) return;
+
+      const allCedis = oModel.getProperty("/cedisAll") || [];
+      const filteredCedis = allCedis.filter((c) => c.parentSoc == selectedSoc);
+
+      console.log("🟩 CEDIS filtrados:", filteredCedis);
+      oModel.setProperty("/cedis", filteredCedis);
+    },
+
+
+    onCediChange: function (oEvent) {
+      const selectedCedi = oEvent.getSource().getSelectedKey();
+      const oCreateModel = this.getView().getModel("createModel");
+      const selectedSoc = oCreateModel.getProperty("/IDSOCIEDAD");
+      const oModel = this.getView().getModel("cascadeModel");
+
+      console.log("✅ CEDI seleccionado:", selectedCedi, "Sociedad:", selectedSoc);
+
+      // Limpiar combos dependientes
+      oCreateModel.setProperty("/IDETIQUETA", null);
+      oCreateModel.setProperty("/IDVALOR", null);
+
+      oModel.setProperty("/etiquetas", []);
+      oModel.setProperty("/valores", []);
+
+      if (!selectedCedi || !selectedSoc) return;
+
+      const allEtiquetas = oModel.getProperty("/etiquetasAll") || [];
+      const filteredEtiquetas = allEtiquetas.filter(
+        (e) => e.IDSOCIEDAD == selectedSoc && e.IDCEDI == selectedCedi
+      );
+
+      console.log("🟩 Etiquetas filtradas:", filteredEtiquetas);
+      oModel.setProperty("/etiquetas", filteredEtiquetas);
+      console.log(">>> etiquetasAll:", oModel.getProperty("/etiquetasAll"));
+      console.log(">>> etiquetas filtradas:", oModel.getProperty("/etiquetas"));
+      console.log(">>> createModel:", this.getView().getModel("createModel").getData());
+
+    },
+
+    onEtiquetaChange: function (oEvent) {
+      const selectedEtiqueta = oEvent.getSource().getSelectedKey();
+      const oCreateModel = this.getView().getModel("createModel");
+      const selectedSoc = oCreateModel.getProperty("/IDSOCIEDAD");
+      const selectedCedi = oCreateModel.getProperty("/IDCEDI");
+      const oModel = this.getView().getModel("cascadeModel");
+
+      console.log("✅ Etiqueta seleccionada:", selectedEtiqueta, "Soc:", selectedSoc, "Cedi:", selectedCedi);
+
+      // Limpiar combo dependiente
+      oCreateModel.setProperty("/IDVALOR", null);
+      oModel.setProperty("/valores", []);
+
+      if (!selectedEtiqueta || !selectedSoc || !selectedCedi) return;
+
+      const allValores = oModel.getProperty("/valoresAll") || [];
+      const filteredValores = allValores.filter(
+        (v) =>
+          v.IDSOCIEDAD == selectedSoc &&
+          v.IDCEDI == selectedCedi &&
+          v.parentEtiqueta == selectedEtiqueta
+      );
+
+      console.log("🟦 Valores filtrados:", filteredValores);
+      oModel.setProperty("/valores", filteredValores);
+    },
+
+
+    onEditPress: async function () {
+      const oRec = this._getSelectedRecord();
+      if (!oRec) {
+        MessageToast.show("Selecciona un registro para editar.");
+        return;
       }
 
-      // CEDIS
-      if (
-        item.IDCEDI &&
-        !cedis.some((c) => c.key === item.IDCEDI && c.parentSoc === item.IDSOCIEDAD)
-      ) {
-        cedis.push({
-          key: item.IDCEDI,
-          text: `Cedi ${item.IDCEDI}`,
-          parentSoc: item.IDSOCIEDAD,
-        });
+      // 1. Cargar catálogos externos (igual que en Create)
+      await this._loadExternalCatalogData();
+
+      // 2. Copiar datos al updateModel
+      const oUpdateModel = this.getView().getModel("updateModel");
+      oUpdateModel.setData(Object.assign({}, oRec));
+
+      // 3. Pre-cargar las cascadas basadas en los valores actuales
+      await this._preloadUpdateCascades(oRec);
+
+      console.log("HOLAAAAAAAAAAAAAAAAAAAAAAAA", oRec);
+
+
+      // 4. Abrir el diálogo
+      this._getUpdateDialog().then(oDialog => {
+        oDialog.open();
+      });
+    },
+
+    _preloadUpdateCascades: async function (oRec) {
+      const oCascadeModel = this.getView().getModel("cascadeModel");
+
+      // Cargar CEDIS para la Sociedad seleccionada
+      if (oRec.IDSOCIEDAD) {
+        const allCedis = oCascadeModel.getProperty("/cedisAll") || [];
+        const filteredCedis = allCedis.filter(c => c.parentSoc == oRec.IDSOCIEDAD);
+        oCascadeModel.setProperty("/cedis", filteredCedis);
       }
 
-      // ETIQUETAS
-      // Guardar etiqueta COMPLETA en etiquetasAll
-      // ETIQUETAS (IDS reales + conservar COLECCION/SECCION para filtros)
-      if (item.IDETIQUETA && !etiquetas.some((e) => e.key === item.IDETIQUETA)) {
-        etiquetas.push({
-          key: item.IDETIQUETA,      
-          text: item.ETIQUETA || item.IDETIQUETA,
-          IDETIQUETA: item.IDETIQUETA,
-          ETIQUETA: item.ETIQUETA,
-          IDSOCIEDAD: item.IDSOCIEDAD,
-          IDCEDI: item.IDCEDI,
-          COLECCION: item.COLECCION || "",
-          SECCION: item.SECCION || "",
-          _raw: item
-        });
+      // Cargar ETIQUETAS para Sociedad + CEDI
+      if (oRec.IDSOCIEDAD && oRec.IDCEDI) {
+        const allEtiquetas = oCascadeModel.getProperty("/etiquetasAll") || [];
+        const filteredEtiquetas = allEtiquetas.filter(
+          e => e.IDSOCIEDAD == oRec.IDSOCIEDAD && e.IDCEDI == oRec.IDCEDI
+        );
+        oCascadeModel.setProperty("/etiquetas", filteredEtiquetas);
       }
 
+      // Cargar VALORES para Sociedad + CEDI + Etiqueta
+      if (oRec.IDSOCIEDAD && oRec.IDCEDI && oRec.IDETIQUETA) {
+        const allValores = oCascadeModel.getProperty("/valoresAll") || [];
+        const filteredValores = allValores.filter(
+          v => v.IDSOCIEDAD == oRec.IDSOCIEDAD &&
+            v.IDCEDI == oRec.IDCEDI &&
+            v.parentEtiqueta == oRec.IDETIQUETA
+        );
+        oCascadeModel.setProperty("/valores", filteredValores);
+      }
+    },
 
-      const etiquetasSimplificadas = etiquetas.map(e => ({
-    key: e.IDETIQUETA,
-    text: e.ETIQUETA || e.IDETIQUETA,
-    IDSOCIEDAD: e.IDSOCIEDAD,
-    IDCEDI: e.IDCEDI
-}));
+    // ========== CASCADAS PARA UPDATE DIALOG ==========
 
-oModel.setProperty("/etiquetas", etiquetasSimplificadas);
-oModel.setProperty("/etiquetasAll", etiquetas); // <-- GUARDAR OBJETO COMPLETO
+    onUpdateSociedadChange: function (oEvent) {
+      const selectedSoc = oEvent.getSource().getSelectedKey();
+      const oUpdateModel = this.getView().getModel("updateModel");
+      const oModel = this.getView().getModel("cascadeModel");
 
+      // Limpiar campos dependientes
+      oUpdateModel.setProperty("/IDCEDI", null);
+      oUpdateModel.setProperty("/IDETIQUETA", null);
+      oUpdateModel.setProperty("/IDVALOR", null);
+      oUpdateModel.setProperty("/IDGRUPOET", null);
 
-      // VALORES anidados
-      if (Array.isArray(item.valores)) {
-  item.valores.forEach((v) => {
-    valores.push({
-      key: v.IDVALOR,     // ID REAL
-      text: v.IDVALOR,    // MOSTRAR ID EN COMBO
-      IDVALOR: v.IDVALOR,
-      VALOR: v.VALOR,
-      IDSOCIEDAD: v.IDSOCIEDAD,
-      IDCEDI: v.IDCEDI,
-      parentEtiqueta: item.IDETIQUETA
-    });
-  });
-  }
-});
+      oModel.setProperty("/cedis", []);
+      oModel.setProperty("/etiquetas", []);
+      oModel.setProperty("/valores", []);
 
-    console.log("✅ Sociedades cargadas:", sociedades);
-    console.log("✅ CEDIS cargados:", cedis);
-    console.log("✅ Etiquetas cargadas:", etiquetas);
-    console.log("✅ Valores cargados:", valores);
+      if (!selectedSoc) return;
 
-    // 🔹 Actualizamos el modelo
-    oModel.setProperty("/sociedades", sociedades);
-    oModel.setProperty("/cedisAll", cedis);
-    oModel.setProperty("/etiquetasAll", etiquetas);
-    oModel.setProperty("/valoresAll", valores);
+      const allCedis = oModel.getProperty("/cedisAll") || [];
+      const filteredCedis = allCedis.filter(c => c.parentSoc == selectedSoc);
+      oModel.setProperty("/cedis", filteredCedis);
+    },
 
-  } catch (err) {
-    console.error("💥 Error al cargar catálogos:", err);
-  }
-},
+    onUpdateCediChange: function (oEvent) {
+      const selectedCedi = oEvent.getSource().getSelectedKey();
+      const oUpdateModel = this.getView().getModel("updateModel");
+      const selectedSoc = oUpdateModel.getProperty("/IDSOCIEDAD");
+      const oModel = this.getView().getModel("cascadeModel");
 
+      // Limpiar campos dependientes
+      oUpdateModel.setProperty("/IDETIQUETA", null);
+      oUpdateModel.setProperty("/IDVALOR", null);
+      oUpdateModel.setProperty("/IDGRUPOET", null);
 
+      oModel.setProperty("/etiquetas", []);
+      oModel.setProperty("/valores", []);
 
-        // --- PASO 1: Poblar Sociedades ---
-        _populateSociedades: function () {
-            const oCascadeModel = this.getView().getModel("cascadeModel");
-            // Usamos '...new Set' para obtener valores únicos de la lista maestra
-            const aNombresSoc = [...new Set(this._aCatalogData.map(item => item.IDSOCIEDAD))];
-            // Filtramos 'undefined' por si algún registro no tiene sociedad
-            const aSociedades = aNombresSoc.filter(id => id !== undefined).map(id => ({ key: id, text: id }));
-            oCascadeModel.setProperty("/sociedades", aSociedades);
-        },
+      if (!selectedCedi || !selectedSoc) return;
 
-        // --- PASO 2: Evento al cambiar Sociedad ---
-      onSociedadChange: function (oEvent) {
-  const selectedSoc = oEvent.getSource().getSelectedKey();
-  const oCreateModel = this.getView().getModel("createModel");
-  const oModel = this.getView().getModel("cascadeModel");
+      const allEtiquetas = oModel.getProperty("/etiquetasAll") || [];
+      const filteredEtiquetas = allEtiquetas.filter(
+        e => e.IDSOCIEDAD == selectedSoc && e.IDCEDI == selectedCedi
+      );
+      oModel.setProperty("/etiquetas", filteredEtiquetas);
+    },
 
-  console.log("✅ Sociedad seleccionada:", selectedSoc);
+    onUpdateEtiquetaChange: function (oEvent) {
+      const selectedEtiqueta = oEvent.getSource().getSelectedKey();
+      const oUpdateModel = this.getView().getModel("updateModel");
+      const selectedSoc = oUpdateModel.getProperty("/IDSOCIEDAD");
+      const selectedCedi = oUpdateModel.getProperty("/IDCEDI");
+      const oModel = this.getView().getModel("cascadeModel");
 
-  // Limpiar combos dependientes
-  oCreateModel.setProperty("/IDCEDI", null);
-  oCreateModel.setProperty("/IDETIQUETA", null);
-  oCreateModel.setProperty("/IDVALOR", null);
+      // Limpiar valor dependiente
+      oUpdateModel.setProperty("/IDVALOR", null);
+      oUpdateModel.setProperty("/IDGRUPOET", null);
 
-  oModel.setProperty("/cedis", []);
-  oModel.setProperty("/etiquetas", []);
-  oModel.setProperty("/valores", []);
+      oModel.setProperty("/valores", []);
 
-  if (!selectedSoc) return;
+      if (!selectedEtiqueta || !selectedSoc || !selectedCedi) return;
 
-  const allCedis = oModel.getProperty("/cedisAll") || [];
-  const filteredCedis = allCedis.filter((c) => c.parentSoc == selectedSoc);
+      const allValores = oModel.getProperty("/valoresAll") || [];
+      const filteredValores = allValores.filter(
+        v => v.IDSOCIEDAD == selectedSoc &&
+          v.IDCEDI == selectedCedi &&
+          v.parentEtiqueta == selectedEtiqueta
+      );
+      oModel.setProperty("/valores", filteredValores);
+    },
 
-  console.log("🟩 CEDIS filtrados:", filteredCedis);
-  oModel.setProperty("/cedis", filteredCedis);
-},
+    onUpdateEtiquetaFilterPress: function () {
+      const oUpdateModel = this.getView().getModel("updateModel");
+      const selectedSoc = oUpdateModel.getProperty("/IDSOCIEDAD");
+      const selectedCedi = oUpdateModel.getProperty("/IDCEDI");
 
+      if (!selectedSoc || !selectedCedi) {
+        MessageToast.show("Selecciona Sociedad y CEDI antes de aplicar filtros.");
+        return;
+      }
 
-onCediChange: function (oEvent) {
-  const selectedCedi = oEvent.getSource().getSelectedKey();
-  const oCreateModel = this.getView().getModel("createModel");
-  const selectedSoc = oCreateModel.getProperty("/IDSOCIEDAD");
-  const oModel = this.getView().getModel("cascadeModel");
+      // Reutilizar la misma lógica de filtros que en Create
+      // Solo cambiamos el contexto para que lea de updateModel
+      this._currentEditContext = "update"; // flag para saber qué modelo usar
+      this.onEtiquetaFilterPress();
+    },
 
-  console.log("✅ CEDI seleccionado:", selectedCedi, "Sociedad:", selectedSoc);
+    onUpdateOpenGrupoEt: function () {
+      const oUpdate = this.getView().getModel("updateModel");
+      const sSoc = oUpdate.getProperty("/IDSOCIEDAD");
+      const sCedi = oUpdate.getProperty("/IDCEDI");
 
-  // Limpiar combos dependientes
-  oCreateModel.setProperty("/IDETIQUETA", null);
-  oCreateModel.setProperty("/IDVALOR", null);
+      if (!sSoc || !sCedi) {
+        MessageToast.show("Selecciona primero Sociedad y CEDI.");
+        return;
+      }
 
-  oModel.setProperty("/etiquetas", []);
-  oModel.setProperty("/valores", []);
+      // 🔴 MARCAR CONTEXTO DE EDICIÓN
+      this._grupoEtEditMode = "update";
 
-  if (!selectedCedi || !selectedSoc) return;
+      // 🟢 FILTRAR ETIQUETAS SEGÚN SOC + CEDI ANTES DE ABRIR EL MODAL
+      const oCascade = this.getView().getModel("cascadeModel");
+      const allEtiquetas = oCascade.getProperty("/etiquetasAll") || [];
 
-  const allEtiquetas = oModel.getProperty("/etiquetasAll") || [];
-  const filteredEtiquetas = allEtiquetas.filter(
-    (e) => e.IDSOCIEDAD == selectedSoc && e.IDCEDI == selectedCedi
-  );
+      const filteredEtiquetas = allEtiquetas.filter(
+        e => String(e.IDSOCIEDAD) === String(sSoc) &&
+          String(e.IDCEDI) === String(sCedi)
+      );
 
-  console.log("🟩 Etiquetas filtradas:", filteredEtiquetas);
-  oModel.setProperty("/etiquetas", filteredEtiquetas);
-  console.log(">>> etiquetasAll:", oModel.getProperty("/etiquetasAll"));
-console.log(">>> etiquetas filtradas:", oModel.getProperty("/etiquetas"));
-console.log(">>> createModel:", this.getView().getModel("createModel").getData());
+      oCascade.setProperty("/etiquetas", filteredEtiquetas);
 
-},
+      console.log("🔍 Etiquetas filtradas para Grupo ET Update:", filteredEtiquetas.length);
 
-onEtiquetaChange: function (oEvent) {
-  const selectedEtiqueta = oEvent.getSource().getSelectedKey();
-  const oCreateModel = this.getView().getModel("createModel");
-  const selectedSoc = oCreateModel.getProperty("/IDSOCIEDAD");
-  const selectedCedi = oCreateModel.getProperty("/IDCEDI");
-  const oModel = this.getView().getModel("cascadeModel");
+      // Abrir o crear el diálogo
+      if (!this._oGrupoEtDialog) {
+        Fragment.load({
+          id: this.getView().getId() + "--grupoEtDialog",
+          name: "com.itt.ztgruposet.frontendztgruposet.view.fragments.GrupoEtDialog",
+          controller: this
+        }).then(oDialog => {
+          this._oGrupoEtDialog = oDialog;
+          this.getView().addDependent(oDialog);
 
-  console.log("✅ Etiqueta seleccionada:", selectedEtiqueta, "Soc:", selectedSoc, "Cedi:", selectedCedi);
+          // Pre-cargar valores actuales de IDGRUPOET si existen
+          this._preloadGrupoEtForUpdate();
 
-  // Limpiar combo dependiente
-  oCreateModel.setProperty("/IDVALOR", null);
-  oModel.setProperty("/valores", []);
+          oDialog.open();
+        }).catch(err => console.error(err));
+      } else {
+        // Pre-cargar valores actuales antes de abrir
+        this._preloadGrupoEtForUpdate();
+        this._oGrupoEtDialog.open();
+      }
+    },
 
-  if (!selectedEtiqueta || !selectedSoc || !selectedCedi) return;
+    _preloadGrupoEtForUpdate: function () {
+      const oUpdate = this.getView().getModel("updateModel");
+      const sGrupoEt = oUpdate.getProperty("/IDGRUPOET"); // Ej: "ETI001-VAL002"
 
-  const allValores = oModel.getProperty("/valoresAll") || [];
-  const filteredValores = allValores.filter(
-    (v) =>
-      v.IDSOCIEDAD == selectedSoc &&
-      v.IDCEDI == selectedCedi &&
-      v.parentEtiqueta == selectedEtiqueta
-  );
+      if (!sGrupoEt || !sGrupoEt.includes("-")) {
+        // Si no hay valor o formato incorrecto, limpiar
+        const oGM = this.getView().getModel("grupoEtModel");
+        oGM.setProperty("/selectedEtiqueta", null);
+        oGM.setProperty("/selectedValor", null);
+        oGM.setProperty("/valoresList", []);
+        oGM.setProperty("/displayName", "");
+        return;
+      }
 
-  console.log("🟦 Valores filtrados:", filteredValores);
-  oModel.setProperty("/valores", filteredValores);
-},
+      // Separar Etiqueta-Valor
+      const [sEtiId, sValId] = sGrupoEt.split("-");
 
+      const oGM = this.getView().getModel("grupoEtModel");
+      const oCascade = this.getView().getModel("cascadeModel");
 
-    onEditPress: function () {
-                const oRec = this._getSelectedRecord(); // Usa la función de tu compañero
-                if (!oRec) {
-                    MessageToast.show("Selecciona un registro para editar.");
-                    return;
-                }
+      // Setear etiqueta seleccionada
+      oGM.setProperty("/selectedEtiqueta", sEtiId);
 
-                // 1. Copia los datos de la fila al modelo "updateModel"
-                const oUpdateModel = this.getView().getModel("updateModel");
-                oUpdateModel.setData(Object.assign({}, oRec)); // Hacemos una copia
+      // Cargar valores para esa etiqueta
+      const selectedSoc = oUpdate.getProperty("/IDSOCIEDAD");
+      const selectedCedi = oUpdate.getProperty("/IDCEDI");
+      const valoresAll = oCascade.getProperty("/valoresAll") || [];
 
-                // 2. Abre el Fragmento (el pop-up)
-                this._getUpdateDialog().then(oDialog => {
-                    oDialog.open();
-                });
-            },
+      const filtered = valoresAll.filter(v =>
+        v.IDSOCIEDAD == selectedSoc &&
+        v.IDCEDI == selectedCedi &&
+        v.parentEtiqueta == sEtiId
+      );
+
+      oGM.setProperty("/valoresList", filtered);
+      oGM.setProperty("/selectedValor", sValId);
+      oGM.setProperty("/displayName", sGrupoEt);
+    },
 
     onSaveUpdate: async function () {
-            const oView = this.getView();
-            const oUpdateModel = oView.getModel("updateModel");
-            const oRecActualizado = oUpdateModel.getData(); // Datos del formulario
+      const oView = this.getView();
+      const oUpdateModel = oView.getModel("updateModel");
+      const oRecActualizado = oUpdateModel.getData();
 
-            // URL del endpoint de Update (¡igual al de "Activar" de tu compañero!)
-            const url = this._getApiParams("UpdateOne");
+      // Validar campos requeridos
+      if (!oRecActualizado.IDSOCIEDAD || !oRecActualizado.IDCEDI ||
+        !oRecActualizado.IDETIQUETA || !oRecActualizado.IDVALOR ||
+        !oRecActualizado.INFOAD) {
+        MessageBox.error("Por favor completa todos los campos requeridos.");
+        return;
+      }
 
-            // Construimos el Payload (igual al de "Activar")
-            const payload = {
-                ...this._buildDeletePayload(oRecActualizado), // Las 6 llaves (IDSOCIEDAD, IDCEDI, etc.)
-                data: {
-                    INFOAD: oRecActualizado.INFOAD // El único campo que queremos actualizar
-                    // ... aquí puedes añadir campos de auditoría si los necesitas
-                    // USUARIOMOD: "FMIRANDAJ",
-                }
-            };
+      const url = this._getApiParams("UpdateOne");
 
-            oView.setBusy(true);
-            try {
-                const res = await fetch(url, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                });
-                const json = await res.json().catch(() => ({}));
-                if (!res.ok) throw new Error("HTTP " + res.status);
+      // 🟢 USAR LA MISMA ESTRUCTURA QUE onActivePress
+      const payload = {
+        ...this._buildDeletePayload(oRecActualizado), // Las 6 llaves exactas
+        data: {
+          // Solo los campos que quieres actualizar
+          IDSOCIEDAD: oRecActualizado.IDSOCIEDAD,
+          IDCEDI: oRecActualizado.IDCEDI,
+          IDETIQUETA: oRecActualizado.IDETIQUETA,
+          IDVALOR: oRecActualizado.IDVALOR,
+          IDGRUPOET: oRecActualizado.IDGRUPOET,
+          INFOAD: oRecActualizado.INFOAD,
+          ACTIVO: oRecActualizado.ACTIVO !== false, // Preservar estado actual
+          BORRADO: oRecActualizado.BORRADO || false,
+          FECHAULTMOD: this._todayStr(),
+          HORAULTMOD: this._timeStr(),
+          USUARIOMOD: "FMIRANDAJ"
+        }
+      };
 
-                MessageToast.show("Registro actualizado correctamente.");
-                this._getUpdateDialog().then(oDialog => oDialog.close()); // Cierra el pop-up
-                await this._loadData(); // Recarga la tabla
-                
-            } catch (e) {
-                MessageBox.error("No se pudo actualizar: " + e.message);
-            } finally {
-                oView.setBusy(false);
-            }
-        },
+      console.log("📤 URL de actualización:", url);
+      console.log("📦 Payload enviado:", JSON.stringify(payload, null, 2));
 
-        // (Esta es la función para el botón "Cancelar" del pop-up)
-        onCancelUpdate: function () {
-            this.getView().getModel("updateModel").setData({}); 
+      oView.setBusy(true);
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
 
-            this._getUpdateDialog().then(oDialog => {
-                oDialog.close();
-            });
-        },
+        const json = await res.json().catch(() => ({}));
 
-        // (Esta es una función "Helper" que carga el Fragmento XML)
-        _getUpdateDialog: function () {
-            if (!this._oUpdateDialog) {
-                this._oUpdateDialog = Fragment.load({
-                    id: this.getView().getId(),
-                    name: "com.itt.ztgruposet.frontendztgruposet.view.fragments.UpdateDialog",
-                    controller: this
-                }).then(oDialog => {
-                    this.getView().addDependent(oDialog);
-                    return oDialog;
-                });
-            }
-            return this._oUpdateDialog;
-        },
+        console.log("📥 Respuesta del servidor:", json);
 
-        //======= Filtros para el campo de etiquetas =======
-    
-        _getEtiquetaFilterDialog: function () {
-            if (!this._oEtiquetaFilterDialog) {
-                this._oEtiquetaFilterDialog = Fragment.load({
-                    id: this.getView().getId(),   // prefija con el ID del view
-                    name: "webapp.view.fragments.EtiquetaFilterDialog",
-                    controller: this
-                })
-                .then(oDialog => {
-                    this.getView().addDependent(oDialog);
-                    return oDialog;
-                });
-            }
-            return this._oEtiquetaFilterDialog;
-        },
+        if (!res.ok) {
+          throw new Error("HTTP " + res.status + (json.messageUSR ? " - " + json.messageUSR : ""));
+        }
 
-        // ¡ESTA ES LA FUNCIÓN QUE LLAMA TU BOTÓN!
-        onOpenEtiquetaFilter: function () {
-            const oCascadeModel = this.getView().getModel("cascadeModel");
-            const oFilterModel = this.getView().getModel("etiquetaFilterModel");
-            
-            // 1. Obtener la lista de etiquetas YA FILTRADAS (por Sociedad y CEDI)
-            // Esta es la lista que actualmente está en el ComboBox de Etiquetas
-            const aEtiquetasActuales = oCascadeModel.getProperty("/etiquetas");
-            
-            if (!aEtiquetasActuales || aEtiquetasActuales.length === 0) {
-                MessageToast.show("No hay etiquetas para filtrar.");
-                return;
-            }
+        MessageToast.show("Registro actualizado correctamente.");
+        this._getUpdateDialog().then(oDialog => oDialog.close());
+        await this._loadData();
+        this.byId("tblGrupos").removeSelections(true);
 
-            // 2. Necesitamos encontrar los datos completos de estas etiquetas
-            //    (para obtener sus 'COLECCION' y 'SECCION' de la lista maestra)
-            const aEtiquetasCompletas = aEtiquetasActuales.map(etiqueta => {
-                // Buscamos en la lista maestra que cargamos al inicio
-                return this._aCatalogData.find(item => item.IDETIQUETA === etiqueta.key);
-            }).filter(item => !!item); // Filtra los 'undefined' (si no se encuentra)
+      } catch (e) {
+        console.error("💥 Error al actualizar:", e);
+        MessageBox.error("No se pudo actualizar: " + e.message);
+      } finally {
+        oView.setBusy(false);
+      }
+    },
 
-            // 3. Extraer listas únicas de Colección y Sección
-            const aColeccionesUnicas = [...new Set(aEtiquetasCompletas.map(item => item.COLECCION).filter(c => !!c))];
-            const aSeccionesUnicas = [...new Set(aEtiquetasCompletas.map(item => item.SECCION).filter(s => !!s))];
+    // (Esta es la función para el botón "Cancelar" del pop-up)
+    onCancelUpdate: function () {
+      this.getView().getModel("updateModel").setData({});
 
-            // 4. Formatear para las listas (y preservar selecciones previas)
-            // Obtenemos las selecciones anteriores del modelo
-            const aOldSeleccion = oFilterModel.getData();
-            const aOldColecciones = aOldSeleccion.colecciones.filter(c => c.selected).map(c => c.text);
-            const aOldSecciones = aOldSeleccion.secciones.filter(s => s.selected).map(s => s.text);
+      this._getUpdateDialog().then(oDialog => {
+        oDialog.close();
+      });
+    },
 
-            oFilterModel.setProperty("/colecciones", aColeccionesUnicas.map(c => {
-                return { text: c, selected: aOldColecciones.includes(c) };
-            }));
-            oFilterModel.setProperty("/secciones", aSeccionesUnicas.map(s => {
-                return { text: s, selected: aOldSecciones.includes(s) };
-            }));
+    // (Esta es una función "Helper" que carga el Fragmento XML)
+    _getUpdateDialog: function () {
+      if (!this._oUpdateDialog) {
+        this._oUpdateDialog = Fragment.load({
+          id: this.getView().getId(),
+          name: "com.itt.ztgruposet.frontendztgruposet.view.fragments.UpdateDialog",
+          controller: this
+        }).then(oDialog => {
+          this.getView().addDependent(oDialog);
+          return oDialog;
+        });
+      }
+      return this._oUpdateDialog;
+    },
 
-            // 5. Abrir el diálogo
-            this._getEtiquetaFilterDialog().then(oDialog => {
-                oDialog.open();
-            });
-        },
+    //======= Filtros para el campo de etiquetas =======
 
-        // Se llama al presionar "Cancelar" en el pop-up de filtros
-        onCancelEtiquetaFilters: function () {
-            this._getEtiquetaFilterDialog().then(oDialog => {
-                oDialog.close();
-            });
-        },
+    _getEtiquetaFilterDialog: function () {
+      if (!this._oEtiquetaFilterDialog) {
+        this._oEtiquetaFilterDialog = Fragment.load({
+          id: this.getView().getId(),   // prefija con el ID del view
+          name: "webapp.view.fragments.EtiquetaFilterDialog",
+          controller: this
+        })
+          .then(oDialog => {
+            this.getView().addDependent(oDialog);
+            return oDialog;
+          });
+      }
+      return this._oEtiquetaFilterDialog;
+    },
 
-        // Se llama al presionar "Aplicar Filtros" en el pop-up de filtros
-        onApplyEtiquetaFilters: function () {
+    // ¡ESTA ES LA FUNCIÓN QUE LLAMA TU BOTÓN!
+    onOpenEtiquetaFilter: function () {
+      const oCascadeModel = this.getView().getModel("cascadeModel");
+      const oFilterModel = this.getView().getModel("etiquetaFilterModel");
 
-    const coleccionList = this.byId("etiquetaFilter--coleccionFilterList");
-    const seccionList   = this.byId("etiquetaFilter--seccionFilterList");
+      // 1. Obtener la lista de etiquetas YA FILTRADAS (por Sociedad y CEDI)
+      // Esta es la lista que actualmente está en el ComboBox de Etiquetas
+      const aEtiquetasActuales = oCascadeModel.getProperty("/etiquetas");
 
-    const coleccionItems = coleccionList ? coleccionList.getSelectedItems() : [];
-    const seccionItems   = seccionList ? seccionList.getSelectedItems() : [];
+      if (!aEtiquetasActuales || aEtiquetasActuales.length === 0) {
+        MessageToast.show("No hay etiquetas para filtrar.");
+        return;
+      }
 
-    const coleccionesSel = coleccionItems.map(i => i.getTitle());
-    const seccionesSel  = seccionItems.map(i => i.getTitle());
+      // 2. Necesitamos encontrar los datos completos de estas etiquetas
+      //    (para obtener sus 'COLECCION' y 'SECCION' de la lista maestra)
+      const aEtiquetasCompletas = aEtiquetasActuales.map(etiqueta => {
+        // Buscamos en la lista maestra que cargamos al inicio
+        return this._aCatalogData.find(item => item.IDETIQUETA === etiqueta.key);
+      }).filter(item => !!item); // Filtra los 'undefined' (si no se encuentra)
 
-    console.log("Colecciones seleccionadas:", coleccionesSel);
-    console.log("Secciones seleccionadas:", seccionesSel);
+      // 3. Extraer listas únicas de Colección y Sección
+      const aColeccionesUnicas = [...new Set(aEtiquetasCompletas.map(item => item.COLECCION).filter(c => !!c))];
+      const aSeccionesUnicas = [...new Set(aEtiquetasCompletas.map(item => item.SECCION).filter(s => !!s))];
 
-    this._applyEtiquetaFilters(); 
-    this._oEtiquetaFilterDialog.close();
-},
+      // 4. Formatear para las listas (y preservar selecciones previas)
+      // Obtenemos las selecciones anteriores del modelo
+      const aOldSeleccion = oFilterModel.getData();
+      const aOldColecciones = aOldSeleccion.colecciones.filter(c => c.selected).map(c => c.text);
+      const aOldSecciones = aOldSeleccion.secciones.filter(s => s.selected).map(s => s.text);
+
+      oFilterModel.setProperty("/colecciones", aColeccionesUnicas.map(c => {
+        return { text: c, selected: aOldColecciones.includes(c) };
+      }));
+      oFilterModel.setProperty("/secciones", aSeccionesUnicas.map(s => {
+        return { text: s, selected: aOldSecciones.includes(s) };
+      }));
+
+      // 5. Abrir el diálogo
+      this._getEtiquetaFilterDialog().then(oDialog => {
+        oDialog.open();
+      });
+    },
+
+    // Se llama al presionar "Cancelar" en el pop-up de filtros
+    onCancelEtiquetaFilters: function () {
+      this._getEtiquetaFilterDialog().then(oDialog => {
+        oDialog.close();
+      });
+    },
+
+    // Se llama al presionar "Aplicar Filtros" en el pop-up de filtros
+    onApplyEtiquetaFilters: function () {
+
+      const coleccionList = this.byId("etiquetaFilter--coleccionFilterList");
+      const seccionList = this.byId("etiquetaFilter--seccionFilterList");
+
+      const coleccionItems = coleccionList ? coleccionList.getSelectedItems() : [];
+      const seccionItems = seccionList ? seccionList.getSelectedItems() : [];
+
+      const coleccionesSel = coleccionItems.map(i => i.getTitle());
+      const seccionesSel = seccionItems.map(i => i.getTitle());
+
+      console.log("Colecciones seleccionadas:", coleccionesSel);
+      console.log("Secciones seleccionadas:", seccionesSel);
+
+      this._applyEtiquetaFilters();
+      this._oEtiquetaFilterDialog.close();
+    },
 
     // ==== DIÁLOGO DE CONFIGURACIÓN ====
     _getConfigDialog: function () {
       if (!this._oConfigDialog) {
-          this._oConfigDialog = Fragment.load({
-              id: this.getView().getId(),
-              name: "com.itt.ztgruposet.frontendztgruposet.view.fragments.ConfigDialog",
-              controller: this
-          }).then(oDialog => {
-              this.getView().addDependent(oDialog);
-              return oDialog;
-          }).catch(oError => {
-              console.error("Error en Fragment.load:", oError);
-          });
+        this._oConfigDialog = Fragment.load({
+          id: this.getView().getId(),
+          name: "com.itt.ztgruposet.frontendztgruposet.view.fragments.ConfigDialog",
+          controller: this
+        }).then(oDialog => {
+          this.getView().addDependent(oDialog);
+          return oDialog;
+        }).catch(oError => {
+          console.error("Error en Fragment.load:", oError);
+        });
       }
       return this._oConfigDialog;
     },
@@ -888,11 +1129,11 @@ onEtiquetaChange: function (oEvent) {
       this._getConfigDialog().then(oDialog => oDialog.close());
     },
 
-    onDbServerChange: function(oEvent) {
-            const bState = oEvent.getParameter("state");
-            this.getView().getModel("dbServerSwitch").setProperty("/state", bState);
+    onDbServerChange: function (oEvent) {
+      const bState = oEvent.getParameter("state");
+      this.getView().getModel("dbServerSwitch").setProperty("/state", bState);
 
-            this._loadData();
+      this._loadData();
     },
 
     onDeletePress: function () {
@@ -922,7 +1163,7 @@ onEtiquetaChange: function (oEvent) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)          // ← si tu API acepta solo llaves, ver nota abajo
               });
-              const json = await res.json().catch(()=>({}));
+              const json = await res.json().catch(() => ({}));
               if (!res.ok) throw new Error("HTTP " + res.status + (json.messageUSR ? " - " + json.messageUSR : ""));
 
               sap.m.MessageToast.show("Registro eliminado definitivamente.");
@@ -940,50 +1181,50 @@ onEtiquetaChange: function (oEvent) {
     },
     //filtro rapido ////////////////////////////////////////////////////////////////////////////////
     onQuickFilter: function (oEvent) {
-        var sKey = oEvent.getParameter("key");
-        this._aQuickFilters = [];
+      var sKey = oEvent.getParameter("key");
+      this._aQuickFilters = [];
 
-        if (sKey === "ACT") {
-            this._aQuickFilters.push(new Filter("EstadoTxt", FilterOperator.EQ, "Activo"));
-        } else if (sKey === "INA") {
-            this._aQuickFilters.push(new Filter("EstadoTxt", FilterOperator.EQ, "Inactivo"));
-        }
+      if (sKey === "ACT") {
+        this._aQuickFilters.push(new Filter("EstadoTxt", FilterOperator.EQ, "Activo"));
+      } else if (sKey === "INA") {
+        this._aQuickFilters.push(new Filter("EstadoTxt", FilterOperator.EQ, "Inactivo"));
+      }
 
-        this._applyAllFilters();
+      this._applyAllFilters();
     },
 
     // ==== LÓGICA DE FILTRADO Y BÚSQUEDA ====
     onSearch1: function (oEvent) {
       var sQuery =
-          oEvent.getParameter("newValue") ||
-          oEvent.getParameter("query") ||
-          oEvent.getSource().getValue();
+        oEvent.getParameter("newValue") ||
+        oEvent.getParameter("query") ||
+        oEvent.getSource().getValue();
 
       this._aSearchFilters = [];
 
       if (sQuery) {
-          var aFilters = [];
+        var aFilters = [];
 
-          // 🔹 Si es número, seguimos usando búsqueda exacta
-          if (!isNaN(sQuery)) {
-              var iQuery = parseInt(sQuery, 10);
-              aFilters.push(new Filter("IDSOCIEDAD", FilterOperator.EQ, iQuery));
-              aFilters.push(new Filter("IDCEDI",     FilterOperator.EQ, iQuery));
-              aFilters.push(new Filter("ID",         FilterOperator.EQ, iQuery));
-          }
+        // 🔹 Si es número, seguimos usando búsqueda exacta
+        if (!isNaN(sQuery)) {
+          var iQuery = parseInt(sQuery, 10);
+          aFilters.push(new Filter("IDSOCIEDAD", FilterOperator.EQ, iQuery));
+          aFilters.push(new Filter("IDCEDI", FilterOperator.EQ, iQuery));
+          aFilters.push(new Filter("ID", FilterOperator.EQ, iQuery));
+        }
 
-          // 🔹 Para texto, usamos Contains (coincidencia parcial)
-          aFilters.push(new Filter("IDETIQUETA",   FilterOperator.Contains, sQuery));
-          aFilters.push(new Filter("IDVALOR",      FilterOperator.Contains, sQuery));
-          aFilters.push(new Filter("IDGRUPOET",    FilterOperator.Contains, sQuery));
-          aFilters.push(new Filter("INFOAD",       FilterOperator.Contains, sQuery));
-          aFilters.push(new Filter("EstadoTxt",    FilterOperator.Contains, sQuery)); 
-          // si escribes "Act" o "Inac" también te filtra por estado
+        // 🔹 Para texto, usamos Contains (coincidencia parcial)
+        aFilters.push(new Filter("IDETIQUETA", FilterOperator.Contains, sQuery));
+        aFilters.push(new Filter("IDVALOR", FilterOperator.Contains, sQuery));
+        aFilters.push(new Filter("IDGRUPOET", FilterOperator.Contains, sQuery));
+        aFilters.push(new Filter("INFOAD", FilterOperator.Contains, sQuery));
+        aFilters.push(new Filter("EstadoTxt", FilterOperator.Contains, sQuery));
+        // si escribes "Act" o "Inac" también te filtra por estado
 
-          // OR entre todos esos campos
-          this._aSearchFilters = [
-              new Filter({ filters: aFilters, and: false })
-          ];
+        // OR entre todos esos campos
+        this._aSearchFilters = [
+          new Filter({ filters: aFilters, and: false })
+        ];
       }
 
       this._applyAllFilters();   // 👉 aquí se combina con quick filter + filtros avanzados
@@ -1002,80 +1243,80 @@ onEtiquetaChange: function (oEvent) {
       this._oFilterDialog.close();
     },
 
-      //aplicion de todos los filtros de busqueda ///////////////////////////////////////////////////////
-    _aSearchFilters:   [],
-    _aDialogFilters:   [],
-    _aQuickFilters:    [],
+    //aplicion de todos los filtros de busqueda ///////////////////////////////////////////////////////
+    _aSearchFilters: [],
+    _aDialogFilters: [],
+    _aQuickFilters: [],
 
     _applyAllFilters: function () {
-        var oBinding = this.byId("tblGrupos").getBinding("items");
+      var oBinding = this.byId("tblGrupos").getBinding("items");
 
-        var aAll = []
-            .concat(this._aSearchFilters  || [])
-            .concat(this._aDialogFilters  || [])
-            .concat(this._aQuickFilters   || []);
+      var aAll = []
+        .concat(this._aSearchFilters || [])
+        .concat(this._aDialogFilters || [])
+        .concat(this._aQuickFilters || []);
 
-        oBinding.filter(aAll);  // AND entre grupos
+      oBinding.filter(aAll);  // AND entre grupos
     },
 
     _oFilterDialog: null,
 
     onFilterPress2: function () {
-        var oView = this.getView();
+      var oView = this.getView();
 
-        if (!this._oFilterDialog) {
-            this._oFilterDialog = sap.ui.xmlfragment(
-                oView.getId(),
-                "com.itt.ztgruposet.frontendztgruposet.view.fragments.FilterDialog2",
-                this
-            );
-            oView.addDependent(this._oFilterDialog);
-        }
+      if (!this._oFilterDialog) {
+        this._oFilterDialog = sap.ui.xmlfragment(
+          oView.getId(),
+          "com.itt.ztgruposet.frontendztgruposet.view.fragments.FilterDialog2",
+          this
+        );
+        oView.addDependent(this._oFilterDialog);
+      }
 
-        this._oFilterDialog.open();
+      this._oFilterDialog.open();
     },
 
     onFilterApply2: function () {
       var oCore = sap.ui.getCore();
       var oView = this.getView();
 
-      var sSoc  = oCore.byId(oView.createId("fSociedad")).getValue().trim();
+      var sSoc = oCore.byId(oView.createId("fSociedad")).getValue().trim();
       var sCedi = oCore.byId(oView.createId("fCedi")).getValue().trim();
-      var sEti  = oCore.byId(oView.createId("fEtiqueta")).getValue().trim();
-      var sVal  = oCore.byId(oView.createId("fValor")).getValue().trim();
-      var oDRS  = oCore.byId(oView.createId("fRegDate"));
+      var sEti = oCore.byId(oView.createId("fEtiqueta")).getValue().trim();
+      var sVal = oCore.byId(oView.createId("fValor")).getValue().trim();
+      var oDRS = oCore.byId(oView.createId("fRegDate"));
       var oEstadoSB = oCore.byId(oView.createId("fEstado"));
 
       var oFrom = oDRS.getDateValue();
-      var oTo   = oDRS.getSecondDateValue();
+      var oTo = oDRS.getSecondDateValue();
       var sEstadoKey = oEstadoSB.getSelectedKey() || "ALL";
 
       var aFilters = [];
 
       if (sSoc && !isNaN(sSoc)) {
-          aFilters.push(new Filter("IDSOCIEDAD", FilterOperator.EQ, parseInt(sSoc, 10)));
+        aFilters.push(new Filter("IDSOCIEDAD", FilterOperator.EQ, parseInt(sSoc, 10)));
       }
 
       if (sCedi && !isNaN(sCedi)) {
-          aFilters.push(new Filter("IDCEDI", FilterOperator.EQ, parseInt(sCedi, 10)));
+        aFilters.push(new Filter("IDCEDI", FilterOperator.EQ, parseInt(sCedi, 10)));
       }
 
       if (sEti) {
-          aFilters.push(new Filter("IDETIQUETA", FilterOperator.EQ, sEti));
+        aFilters.push(new Filter("IDETIQUETA", FilterOperator.EQ, sEti));
       }
 
       if (sVal) {
-          aFilters.push(new Filter("IDVALOR", FilterOperator.EQ, sVal));
+        aFilters.push(new Filter("IDVALOR", FilterOperator.EQ, sVal));
       }
 
       if (oFrom && oTo) {
-          aFilters.push(new Filter("REGDATE", FilterOperator.BT, oFrom, oTo));
+        aFilters.push(new Filter("REGDATE", FilterOperator.BT, oFrom, oTo));
       }
 
       if (sEstadoKey === "ACT") {
-          aFilters.push(new Filter("EstadoTxt", FilterOperator.EQ, "Activo"));
+        aFilters.push(new Filter("EstadoTxt", FilterOperator.EQ, "Activo"));
       } else if (sEstadoKey === "INA") {
-          aFilters.push(new Filter("EstadoTxt", FilterOperator.EQ, "Inactivo"));
+        aFilters.push(new Filter("EstadoTxt", FilterOperator.EQ, "Inactivo"));
       }
 
       // 🔴 AQUÍ es lo importante:
@@ -1106,35 +1347,35 @@ onEtiquetaChange: function (oEvent) {
 
     onFilterCancel: function () {
       if (this._oFilterDialog) {
-          this._oFilterDialog.close();
+        this._oFilterDialog.close();
       }
     },
 
-    onFilterApply: function() {
+    onFilterApply: function () {
       this._applyFiltersAndSort();
       this._getFilterDialog().then(oDialog => oDialog.close());
     },
 
-    onCancelFilters: function() {
+    onCancelFilters: function () {
       // Opcional: podrías resetear el modelo a su estado anterior si lo guardaste al abrir.
       this._getFilterDialog().then(oDialog => oDialog.close());
     },
 
-    onResetFilters: function() {
+    onResetFilters: function () {
       this._initFilterModel(); // Restaura el modelo a su estado inicial
       this.byId("searchField").setValue(""); // Limpia el campo de búsqueda visualmente
       this._applyFiltersAndSort();
       this._getFilterDialog().then(oDialog => oDialog.close());
     },
 
-    onFilterFieldSelect: function(oEvent) {
+    onFilterFieldSelect: function (oEvent) {
       const iSelectedIndex = oEvent.getParameter("selectedIndex");
       const oFilterModel = this.getView().getModel("filter");
       const sSelectedKey = oFilterModel.getProperty(`/fields/${iSelectedIndex}/key`);
       oFilterModel.setProperty("/selectedField", sSelectedKey);
     },
 
-    _applyFiltersAndSort: function() {
+    _applyFiltersAndSort: function () {
       const oFilterData = this.getView().getModel("filter").getData();
       const sQuery = oFilterData.searchQuery.toLowerCase();
       let aFiltered = [...this._aAllItems];
@@ -1184,7 +1425,7 @@ onEtiquetaChange: function (oEvent) {
       this._iCurrentPage = 1; // Siempre volver a la primera página después de filtrar
       this._updateTablePage();
     },
-  
+
     // ==== Popover para Información Adicional ====
     _getInfoAdPopover: function () {
       if (!this._oInfoAdPopover) {
@@ -1200,7 +1441,7 @@ onEtiquetaChange: function (oEvent) {
       return this._oInfoAdPopover;
     },
 
-    onInfoAdPress: function(oEvent) {
+    onInfoAdPress: function (oEvent) {
       const oControl = oEvent.getSource();
       const oContext = oControl.getBindingContext("grupos");
       const sInfoCompleta = oContext.getProperty("INFOAD");
@@ -1248,67 +1489,67 @@ onEtiquetaChange: function (oEvent) {
     },
 
     _resetEtiquetaCombo: function () {
-    const oView = this.getView();
-    const oCascade = oView.getModel("cascadeModel");
-    const oCreate = oView.getModel("createModel");
+      const oView = this.getView();
+      const oCascade = oView.getModel("cascadeModel");
+      const oCreate = oView.getModel("createModel");
 
-    const etiquetasAll = oCascade.getProperty("/etiquetasAll") || [];
-    const selectedSoc = oCreate.getProperty("/IDSOCIEDAD");
-    const selectedCedi = oCreate.getProperty("/IDCEDI");
+      const etiquetasAll = oCascade.getProperty("/etiquetasAll") || [];
+      const selectedSoc = oCreate.getProperty("/IDSOCIEDAD");
+      const selectedCedi = oCreate.getProperty("/IDCEDI");
 
-    // Si hay Soc/Cedi seleccionados, filtrar por ellos; si no, mostrar todo
-    const base = etiquetasAll.filter(e => {
+      // Si hay Soc/Cedi seleccionados, filtrar por ellos; si no, mostrar todo
+      const base = etiquetasAll.filter(e => {
         if (selectedSoc && selectedCedi) {
-            return String(e.IDSOCIEDAD) === String(selectedSoc) &&
-                   String(e.IDCEDI) === String(selectedCedi);
+          return String(e.IDSOCIEDAD) === String(selectedSoc) &&
+            String(e.IDCEDI) === String(selectedCedi);
         }
         return true;
-    });
+      });
 
-    // Mapear al formato que espera el ComboBox
-    const mapped = base.map(e => ({
+      // Mapear al formato que espera el ComboBox
+      const mapped = base.map(e => ({
         key: e.IDETIQUETA || e.key || e._id || e.ID,
         text: e.ETIQUETA || e.text || e.IDETIQUETA,
         IDSOCIEDAD: e.IDSOCIEDAD,
         IDCEDI: e.IDCEDI
-    }));
+      }));
 
-    oCascade.setProperty("/etiquetas", mapped);
-},
+      oCascade.setProperty("/etiquetas", mapped);
+    },
 
-onEtiquetaFilterPress: function () {
-    const oFilterModel = this.getView().getModel("etiquetaFilterModel");
+    onEtiquetaFilterPress: function () {
+      const oFilterModel = this.getView().getModel("etiquetaFilterModel");
 
-    // obtener última selección (default ALL si no existe)
-    const lastRange = oFilterModel.getProperty("/selectedDateRange") || "ALL";
+      // obtener última selección (default ALL si no existe)
+      const lastRange = oFilterModel.getProperty("/selectedDateRange") || "ALL";
 
-    // si el dialog NO existe → cargarlo
-    if (!this._oEtiquetaFilterDialog) {
+      // si el dialog NO existe → cargarlo
+      if (!this._oEtiquetaFilterDialog) {
         Fragment.load({
-            id: this.getView().getId() + "--etiquetaFilter",
-            name: "com.itt.ztgruposet.frontendztgruposet.view.fragments.EtiquetaFilterDialog",
-            controller: this
+          id: this.getView().getId() + "--etiquetaFilter",
+          name: "com.itt.ztgruposet.frontendztgruposet.view.fragments.EtiquetaFilterDialog",
+          controller: this
         }).then((oDialog) => {
 
-            this._oEtiquetaFilterDialog = oDialog;
-            this.getView().addDependent(oDialog);
+          this._oEtiquetaFilterDialog = oDialog;
+          this.getView().addDependent(oDialog);
 
-            // cargar listas internas del filtro
-            this._loadEtiquetaFilters();
+          // cargar listas internas del filtro
+          this._loadEtiquetaFilters();
 
-            // restaurar etiquetas para que el combo no quede vacío
-            this._resetEtiquetaCombo();
+          // restaurar etiquetas para que el combo no quede vacío
+          this._resetEtiquetaCombo();
 
-            // aplicar la última fecha seleccionada al combo del dialog
-            const oDateCombo = this.byId("etiquetaFilter--etiquetaFilterDate");
-            if (oDateCombo) {
-                oDateCombo.setSelectedKey(lastRange);
-            }
+          // aplicar la última fecha seleccionada al combo del dialog
+          const oDateCombo = this.byId("etiquetaFilter--etiquetaFilterDate");
+          if (oDateCombo) {
+            oDateCombo.setSelectedKey(lastRange);
+          }
 
-            oDialog.open();
+          oDialog.open();
         }).catch(err => console.error("Error cargando fragment etiquetaFilter:", err));
 
-    } else {
+      } else {
         // ya existe → solo recargar listas y restaurar fecha
         this._loadEtiquetaFilters();
         this._resetEtiquetaCombo();
@@ -1316,332 +1557,355 @@ onEtiquetaFilterPress: function () {
         // restaurar selección anterior en el combo de fecha
         const oDateCombo = this.byId("etiquetaFilter--etiquetaFilterDate");
         if (oDateCombo) {
-            oDateCombo.setSelectedKey(lastRange);
+          oDateCombo.setSelectedKey(lastRange);
         }
 
         this._oEtiquetaFilterDialog.open();
-    }
-},
+      }
+    },
 
 
-_loadEtiquetaFilters: function () {
-    const oCascade = this.getView().getModel("cascadeModel");
-    const oFilterModel = this.getView().getModel("etiquetaFilterModel");
+    _loadEtiquetaFilters: function () {
+      const oCascade = this.getView().getModel("cascadeModel");
+      const oFilterModel = this.getView().getModel("etiquetaFilterModel");
 
-    const etiquetasAll = oCascade.getProperty("/etiquetasAll") || [];
+      const etiquetasAll = oCascade.getProperty("/etiquetasAll") || [];
 
-    // Colecciones únicas
-    const colecciones = [...new Set(etiquetasAll.map(e => e.COLECCION))]  
-        .filter(v => v)  
-        .map(v => ({ text: v }));
-
-    // Secciones únicas
-    const secciones = [...new Set(etiquetasAll.map(e => e.SECCION))]
+      // Colecciones únicas
+      const colecciones = [...new Set(etiquetasAll.map(e => e.COLECCION))]
         .filter(v => v)
         .map(v => ({ text: v }));
 
-    oFilterModel.setProperty("/colecciones", colecciones);
-    oFilterModel.setProperty("/secciones", secciones);
-},
+      // Secciones únicas
+      const secciones = [...new Set(etiquetasAll.map(e => e.SECCION))]
+        .filter(v => v)
+        .map(v => ({ text: v }));
 
-onCancelEtiquetaFilters: function () {
-    const oFilterModel = this.getView().getModel("etiquetaFilterModel");
-    if (oFilterModel) oFilterModel.setProperty("/selectedDateRange", "ALL");
+      oFilterModel.setProperty("/colecciones", colecciones);
+      oFilterModel.setProperty("/secciones", secciones);
+    },
 
-    // repoblar etiquetas con la vista actual (evitar que al reabrir quede vacío)
-    this._resetEtiquetaCombo();
+    onCancelEtiquetaFilters: function () {
+      const oFilterModel = this.getView().getModel("etiquetaFilterModel");
+      if (oFilterModel) oFilterModel.setProperty("/selectedDateRange", "ALL");
 
-    if (this._oEtiquetaFilterDialog && this._oEtiquetaFilterDialog.isOpen()) {
+      // repoblar etiquetas con la vista actual (evitar que al reabrir quede vacío)
+      this._resetEtiquetaCombo();
+
+      if (this._oEtiquetaFilterDialog && this._oEtiquetaFilterDialog.isOpen()) {
         this._oEtiquetaFilterDialog.close();
-    }
-},
+      }
+    },
 
-_getRecordDate: function (item) {
-    // 1) Si viene crudo desde BD dentro de _raw
-    const raw = item._raw || item;
+    _getRecordDate: function (item) {
+      // 1) Si viene crudo desde BD dentro de _raw
+      const raw = item._raw || item;
 
-    // 2) DETAIL_ROW > CURRENT
-    try {
+      // 2) DETAIL_ROW > CURRENT
+      try {
         if (raw.DETAIL_ROW?.DETAIL_ROW_REG) {
-            const curr = raw.DETAIL_ROW.DETAIL_ROW_REG.find(r => r.CURRENT);
-            if (curr?.REGDATE) {
-                const d = new Date(curr.REGDATE);
-                if (!isNaN(d)) return d;
-            }
+          const curr = raw.DETAIL_ROW.DETAIL_ROW_REG.find(r => r.CURRENT);
+          if (curr?.REGDATE) {
+            const d = new Date(curr.REGDATE);
+            if (!isNaN(d)) return d;
+          }
         }
-    } catch (e) {}
+      } catch (e) { }
 
-    // 3) updatedAt
-    if (raw.updatedAt) {
+      // 3) updatedAt
+      if (raw.updatedAt) {
         const d = new Date(raw.updatedAt);
         if (!isNaN(d)) return d;
-    }
+      }
 
-    // 4) createdAt
-    if (raw.createdAt) {
+      // 4) createdAt
+      if (raw.createdAt) {
         const d = new Date(raw.createdAt);
         if (!isNaN(d)) return d;
-    }
+      }
 
-    return null;
-},
-_filterByMonths: function (iMonths) {
-    const oCascadeModel = this.getView().getModel("cascadeModel");
-    const aAllItems = oCascadeModel.getProperty("/etiquetasAll");
+      return null;
+    },
+    _filterByMonths: function (iMonths) {
+      const oCascadeModel = this.getView().getModel("cascadeModel");
+      const aAllItems = oCascadeModel.getProperty("/etiquetasAll");
 
-    const today = new Date();
-    const limitDate = new Date();
-    limitDate.setMonth(limitDate.getMonth() - iMonths);
+      const today = new Date();
+      const limitDate = new Date();
+      limitDate.setMonth(limitDate.getMonth() - iMonths);
 
-    const aFiltered = aAllItems.filter(item => {
-    const d = this._getRecordDate(item);
-    console.log("Etiqueta:", item.IDETIQUETA, "Fecha detectada:", d);
-    return d && d >= limitDate;
-});
+      const aFiltered = aAllItems.filter(item => {
+        const d = this._getRecordDate(item);
+        console.log("Etiqueta:", item.IDETIQUETA, "Fecha detectada:", d);
+        return d && d >= limitDate;
+      });
 
-    oCascadeModel.setProperty("/etiquetas", aFiltered);
-    
-},
-onFechaSelectionChange: function (oEvent) {
-    const key = oEvent.getSource().getSelectedKey();
+      oCascadeModel.setProperty("/etiquetas", aFiltered);
 
-    const oFilterModel = this.getView().getModel("etiquetaFilterModel");
-    oFilterModel.setProperty("/selectedDateRange", key);
+    },
+    onFechaSelectionChange: function (oEvent) {
+      const key = oEvent.getSource().getSelectedKey();
 
-    this._applyEtiquetaFilters();
-},
+      const oFilterModel = this.getView().getModel("etiquetaFilterModel");
+      oFilterModel.setProperty("/selectedDateRange", key);
 
-_applyEtiquetaFilters: async function () {
-    const oCascade = this.getView().getModel("cascadeModel");
-    const oFilterModel = this.getView().getModel("etiquetaFilterModel");
-    const oCreateModel = this.getView().getModel("createModel");
+      this._applyEtiquetaFilters();
+    },
 
-    // obtener copia completa (no mapear -> preservar fechas)
-    let etiquetasAll = oCascade.getProperty("/etiquetasAll") || [];
+    _applyEtiquetaFilters: async function () {
+      const oCascade = this.getView().getModel("cascadeModel");
+      const oFilterModel = this.getView().getModel("etiquetaFilterModel");
+      const oCreateModel = this.getView().getModel("createModel");
 
-    console.log("📦 etiquetasAll[0] FULL:", JSON.stringify(etiquetasAll[0], null, 2));
+      // obtener copia completa (no mapear -> preservar fechas)
+      let etiquetasAll = oCascade.getProperty("/etiquetasAll") || [];
 
-    if (!Array.isArray(etiquetasAll) || etiquetasAll.length === 0) {
+      console.log("📦 etiquetasAll[0] FULL:", JSON.stringify(etiquetasAll[0], null, 2));
+
+      if (!Array.isArray(etiquetasAll) || etiquetasAll.length === 0) {
         try {
-            await this._loadExternalCatalogData();
-            etiquetasAll = this.getView().getModel("cascadeModel").getProperty("/etiquetasAll") || [];
+          await this._loadExternalCatalogData();
+          etiquetasAll = this.getView().getModel("cascadeModel").getProperty("/etiquetasAll") || [];
         } catch (e) {
-            console.warn("No se pudo cargar etiquetasAll automáticamente:", e);
+          console.warn("No se pudo cargar etiquetasAll automáticamente:", e);
         }
-    }
+      }
 
-    console.log("💾 etiquetasAll count:", etiquetasAll.length);
+      console.log("💾 etiquetasAll count:", etiquetasAll.length);
 
-    const selectedSoc = oCreateModel.getProperty("/IDSOCIEDAD");
-    const selectedCedi = oCreateModel.getProperty("/IDCEDI");
+      const selectedSoc = oCreateModel.getProperty("/IDSOCIEDAD");
+      const selectedCedi = oCreateModel.getProperty("/IDCEDI");
 
-    if (!selectedSoc || !selectedCedi) {
+      if (!selectedSoc || !selectedCedi) {
         // Si quieres mostrar todo cuando falten Soc/Cedi, quita este return
         MessageToast.show("Selecciona Sociedad y CEDI antes de aplicar filtros.");
         return;
-    }
+      }
 
-    // colecciones y secciones
-    const oColeccionList = this.byId("etiquetaFilter--coleccionFilterList");
-    const oSeccionList = this.byId("etiquetaFilter--seccionFilterList");
-    const coleccionItems = oColeccionList ? oColeccionList.getSelectedItems() : [];
-    const seccionItems = oSeccionList ? oSeccionList.getSelectedItems() : [];
-    const coleccionesSel = coleccionItems.map(i => i.getTitle());
-    const seccionesSel = seccionItems.map(i => i.getTitle());
+      // colecciones y secciones
+      const oColeccionList = this.byId("etiquetaFilter--coleccionFilterList");
+      const oSeccionList = this.byId("etiquetaFilter--seccionFilterList");
+      const coleccionItems = oColeccionList ? oColeccionList.getSelectedItems() : [];
+      const seccionItems = oSeccionList ? oSeccionList.getSelectedItems() : [];
+      const coleccionesSel = coleccionItems.map(i => i.getTitle());
+      const seccionesSel = seccionItems.map(i => i.getTitle());
 
-    // filtro base por Soc/Cedi (usar string seguro)
-    let filtered = etiquetasAll.filter(e =>
+      // filtro base por Soc/Cedi (usar string seguro)
+      let filtered = etiquetasAll.filter(e =>
         String(e.IDSOCIEDAD) === String(selectedSoc) &&
         String(e.IDCEDI) === String(selectedCedi)
-    );
+      );
 
-    console.log("Después SOC+CEDI count:", filtered.length);
+      console.log("Después SOC+CEDI count:", filtered.length);
 
-    if (coleccionesSel.length > 0) {
+      if (coleccionesSel.length > 0) {
         filtered = filtered.filter(e => coleccionesSel.includes(e.COLECCION || ""));
         console.log("Después Colección count:", filtered.length);
-    }
+      }
 
-    if (seccionesSel.length > 0) {
+      if (seccionesSel.length > 0) {
         filtered = filtered.filter(e => seccionesSel.includes(e.SECCION || ""));
         console.log("Después Sección count:", filtered.length);
-    }
+      }
 
-    // RANGO DE FECHA
-    const dateRange = oFilterModel.getProperty("/selectedDateRange") || "ALL";
-    if (dateRange !== "ALL") {
+      // RANGO DE FECHA
+      const dateRange = oFilterModel.getProperty("/selectedDateRange") || "ALL";
+      if (dateRange !== "ALL") {
         const months = parseInt(String(dateRange).replace("M", ""), 10);
         if (isNaN(months)) {
-            console.warn("selectedDateRange inválido:", dateRange);
+          console.warn("selectedDateRange inválido:", dateRange);
         } else {
-            // calcular límite sin mutar objeto compartido
-            const now = new Date();
-            const limit = new Date(now.getTime());
-            limit.setMonth(limit.getMonth() - months);
+          // calcular límite sin mutar objeto compartido
+          const now = new Date();
+          const limit = new Date(now.getTime());
+          limit.setMonth(limit.getMonth() - months);
 
-            console.log("Filtrando por fecha. Límite:", limit.toISOString());
+          console.log("Filtrando por fecha. Límite:", limit.toISOString());
 
-            // debug por cada item para ver qué fecha se detecta
-            filtered = filtered.filter(e => {
-                const d = this._getRecordDate(e);
-                console.log("Comparando etiqueta:", e.IDETIQUETA || e.key || e._id,
-                    "-> date:", d ? d.toISOString() : null);
-                return d && d >= limit;
-            });
+          // debug por cada item para ver qué fecha se detecta
+          filtered = filtered.filter(e => {
+            const d = this._getRecordDate(e);
+            console.log("Comparando etiqueta:", e.IDETIQUETA || e.key || e._id,
+              "-> date:", d ? d.toISOString() : null);
+            return d && d >= limit;
+          });
 
-            console.log("Después Fecha count:", filtered.length);
+          console.log("Después Fecha count:", filtered.length);
         }
-    } else {
+      } else {
         console.log("DateRange = ALL, no filtrar por fecha");
-    }
+      }
 
-    // Aplicar resultado al combo: **NO** mapear para no perder fechas
-    // Pero el combo espera items con IDETIQUETA para key/text: lo dejamos completo y el XML usará IDETIQUETA
-    oCascade.setProperty("/etiquetas", filtered);
+      // Aplicar resultado al combo: **NO** mapear para no perder fechas
+      // Pero el combo espera items con IDETIQUETA para key/text: lo dejamos completo y el XML usará IDETIQUETA
+      oCascade.setProperty("/etiquetas", filtered);
 
-    // reset seleccionado visual del combo (si quieres)
-    this.getView().getModel("createModel").setProperty("/IDETIQUETA", null);
+      // reset seleccionado visual del combo (si quieres)
+      this.getView().getModel("createModel").setProperty("/IDETIQUETA", null);
 
-    console.log("Resultado final filtrado count:", filtered.length);
-},
-_refreshTable: function () {
-    const oTable = this.byId("idTabla"); // ID real
-    const oModel = new JSONModel(this._aFilteredItems);
+      console.log("Resultado final filtrado count:", filtered.length);
+    },
+    _refreshTable: function () {
+      const oTable = this.byId("idTabla"); // ID real
+      const oModel = new JSONModel(this._aFilteredItems);
 
-    oTable.setModel(oModel, "tableModel");
-},
+      oTable.setModel(oModel, "tableModel");
+    },
 
-// Abre el diálogo (carga fragment con id prefijado, repuebla listas y abre)
-onOpenGrupoEt: function () {
-  const oCreate = this.getView().getModel("createModel");
-  const sSoc = oCreate.getProperty("/IDSOCIEDAD");
-  const sCedi = oCreate.getProperty("/IDCEDI");
+    // Abre el diálogo (carga fragment con id prefijado, repuebla listas y abre)
+    onOpenGrupoEt: function () {
+      const oCreate = this.getView().getModel("createModel");
+      const sSoc = oCreate.getProperty("/IDSOCIEDAD");
+      const sCedi = oCreate.getProperty("/IDCEDI");
 
-  if (!sSoc || !sCedi) {
-    MessageToast.show("Selecciona primero Sociedad y CEDI.");
-    return;
-  }
+      if (!sSoc || !sCedi) {
+        MessageToast.show("Selecciona primero Sociedad y CEDI.");
+        return;
+      }
 
-  // Asegurarnos que /etiquetas esté repoblado para la sociedad/cedi actual
-  if (this._resetEtiquetaCombo) {
-    this._resetEtiquetaCombo();
-  }
+      // 🔴 MARCAR CONTEXTO DE CREACIÓN
+      this._grupoEtEditMode = "create"; // <-- AGREGAR ESTA LÍNEA
 
-  if (!this._oGrupoEtDialog) {
-    Fragment.load({
-      id: this.getView().getId() + "--grupoEtDialog",
-      name: "com.itt.ztgruposet.frontendztgruposet.view.fragments.GrupoEtDialog",
-      controller: this
-    }).then(oDialog => {
-      this._oGrupoEtDialog = oDialog;
-      this.getView().addDependent(oDialog);
+      // Asegurarnos que /etiquetas esté repoblado para la sociedad/cedi actual
+      if (this._resetEtiquetaCombo) {
+        this._resetEtiquetaCombo();
+      }
 
-      // inicializar el modelo temporal
+      if (!this._oGrupoEtDialog) {
+        Fragment.load({
+          id: this.getView().getId() + "--grupoEtDialog",
+          name: "com.itt.ztgruposet.frontendztgruposet.view.fragments.GrupoEtDialog",
+          controller: this
+        }).then(oDialog => {
+          this._oGrupoEtDialog = oDialog;
+          this.getView().addDependent(oDialog);
+
+          // inicializar el modelo temporal
+          const oGM = this.getView().getModel("grupoEtModel");
+          oGM.setProperty("/selectedEtiqueta", null);
+          oGM.setProperty("/selectedValor", null);
+          oGM.setProperty("/valoresList", []);
+          oGM.setProperty("/displayName", "");
+
+          oDialog.open();
+        }).catch(err => console.error(err));
+      } else {
+        // resetear modelo antes de abrir
+        const oGM = this.getView().getModel("grupoEtModel");
+        oGM.setProperty("/selectedEtiqueta", null);
+        oGM.setProperty("/selectedValor", null);
+        oGM.setProperty("/valoresList", []);
+        oGM.setProperty("/displayName", "");
+        this._oGrupoEtDialog.open();
+      }
+    },
+
+    // Cuando seleccionan la Etiqueta dentro del modal -> cargar valores en grupoEtModel>/valoresList
+    onGrupoEtiquetaChange: function (oEvent) {
+      const selectedEtiqueta = oEvent.getSource().getSelectedKey();
+
+      // 🟢 DETECTAR CONTEXTO (Create o Update)
+      const bIsUpdate = this._grupoEtEditMode === "update";
+      const oContextModel = bIsUpdate ?
+        this.getView().getModel("updateModel") :
+        this.getView().getModel("createModel");
+
       const oGM = this.getView().getModel("grupoEtModel");
-      oGM.setProperty("/selectedEtiqueta", null);
+      const oCascade = this.getView().getModel("cascadeModel");
+
+      const selectedSoc = oContextModel.getProperty("/IDSOCIEDAD");
+      const selectedCedi = oContextModel.getProperty("/IDCEDI");
+
+      const valoresAll = oCascade.getProperty("/valoresAll") || [];
+
+      // Filtrar valores en cascada igual que IDVALOR normal
+      const filtered = valoresAll.filter(v =>
+        String(v.IDSOCIEDAD) === String(selectedSoc) &&
+        String(v.IDCEDI) === String(selectedCedi) &&
+        String(v.parentEtiqueta) === String(selectedEtiqueta)
+      );
+      // Guardar lista y limpiar selección anterior
+      oGM.setProperty("/valoresList", filtered);
       oGM.setProperty("/selectedValor", null);
-      oGM.setProperty("/valoresList", []);
-      oGM.setProperty("/display", "");
+      oGM.setProperty("/displayName", "");
+    },
+    // Cuando seleccionan el Valor -> actualizar display (Etiqueta-Valor)
+    onGrupoValorChange: function (oEvent) {
+      const oGM = this.getView().getModel("grupoEtModel");
 
-      oDialog.open();
-    }).catch(err => console.error(err));
-  } else {
-    // resetear modelo antes de abrir
-    const oGM = this.getView().getModel("grupoEtModel");
-    oGM.setProperty("/selectedEtiqueta", null);
-    oGM.setProperty("/selectedValor", null);
-    oGM.setProperty("/valoresList", []);
-    oGM.setProperty("/display", "");
-    this._oGrupoEtDialog.open();
-  }
-},
+      const selectedEtiqueta = oGM.getProperty("/selectedEtiqueta");
+      const selectedValor = oEvent.getSource().getSelectedKey();
 
-// Cuando seleccionan la Etiqueta dentro del modal -> cargar valores en grupoEtModel>/valoresList
-onGrupoEtiquetaChange: function (oEvent) {
-    const selectedEtiqueta = oEvent.getSource().getSelectedKey();
-    const oCreateModel = this.getView().getModel("createModel");
-    const oGM = this.getView().getModel("grupoEtModel");
-    const oCascade = this.getView().getModel("cascadeModel");
+      // Como ahora key = ID, simplemente concatenamos
+      const display = selectedEtiqueta + "-" + selectedValor;
 
-    const selectedSoc = oCreateModel.getProperty("/IDSOCIEDAD");
-    const selectedCedi = oCreateModel.getProperty("/IDCEDI");
+      oGM.setProperty("/selectedValor", selectedValor);
+      oGM.setProperty("/displayName", display);
 
-    // 🔧 Debe usarse así, nunca como "valoresAll" solo
-    const valoresAll = oCascade.getProperty("/valoresAll") || [];
+      console.log("✔ CAMBIO DE VALOR GRUPO ET:");
+      console.log(" - Modo:", this._grupoEtEditMode);
+      console.log(" - selectedEtiqueta (ID) =", selectedEtiqueta);
+      console.log(" - selectedValor (ID) =", selectedValor);
+      console.log(" - display =", display);
+    },
 
-    // Filtrar valores en cascada igual que IDVALOR normal
-    const filtered = valoresAll.filter(v =>
-        v.IDSOCIEDAD == selectedSoc &&
-        v.IDCEDI == selectedCedi &&
-        v.parentEtiqueta == selectedEtiqueta
-    );
+    // Aceptar: escribir en createModel>/IDGRUPOET (y cerrar)
+    onApplyGrupoEt: function () {
+      const oGM = this.getView().getModel("grupoEtModel");
+      const sEtiId = oGM.getProperty("/selectedEtiqueta");
+      const sValId = oGM.getProperty("/selectedValor");
 
-    // Guardar lista
-    oGM.setProperty("/valoresList", filtered);
+      console.log("✔ VALIDANDO:");
+      console.log(" selectedEtiqueta =", sEtiId);
+      console.log(" selectedValor =", sValId);
+      console.log(" Modo =", this._grupoEtEditMode);
 
-    // Limpiar selección anterior
-    oGM.setProperty("/selectedValor", null);
-    oGM.setProperty("/displayName", "");
-},
-// Cuando seleccionan el Valor -> actualizar display (Etiqueta-Valor)
-onGrupoValorChange: function (oEvent) {
-    const oGM = this.getView().getModel("grupoEtModel");
-    const oCascade = this.getView().getModel("cascadeModel");
+      if (!sEtiId || !sValId) {
+        MessageToast.show("Selecciona Etiqueta y Valor antes de aceptar.");
+        return;
+      }
 
-    const selectedEtiqueta = oGM.getProperty("/selectedEtiqueta");
-    const selectedValor = oEvent.getSource().getSelectedKey();
+      const sGrupoEt = `${sEtiId}-${sValId}`;
 
-    // Obtener IDs reales
-    const etiquetasAll = oCascade.getProperty("/etiquetasAll") || [];
-    const etiquetaObj = etiquetasAll.find(e => e.key === selectedEtiqueta);
+      // 🔴 USAR LA VARIABLE DE CONTEXTO
+      if (this._grupoEtEditMode === "update") {
+        const oUpdate = this.getView().getModel("updateModel");
+        oUpdate.setProperty("/GRP_ET_IDETIQUETA", sEtiId);
+        oUpdate.setProperty("/GRP_ET_IDVALOR", sValId);
+        oUpdate.setProperty("/IDGRUPOET", sGrupoEt);
+        console.log("✅ Guardado en updateModel:", sGrupoEt);
+      } else {
+        const oCreate = this.getView().getModel("createModel");
+        oCreate.setProperty("/GRP_ET_IDETIQUETA", sEtiId);
+        oCreate.setProperty("/GRP_ET_IDVALOR", sValId);
+        oCreate.setProperty("/IDGRUPOET", sGrupoEt);
+        console.log("✅ Guardado en createModel:", sGrupoEt);
+      }
 
-    // USAR SIEMPRE EL ID, NO EL TEXTO
-    const etiquetaID = etiquetaObj ? etiquetaObj.IDETIQUETA : selectedEtiqueta;
+      this._oGrupoEtDialog.close();
+    },
 
-    const display = etiquetaID + "-" + selectedValor;
+    // Cancelar: cerrar sin cambios
+    onCancelGrupoEt: function () {
+      if (this._oGrupoEtDialog && this._oGrupoEtDialog.isOpen()) {
+        this._oGrupoEtDialog.close();
+      }
+    },
+    _todayStr: function () {
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    },
 
-    oGM.setProperty("/selectedValor", selectedValor);
-    oGM.setProperty("/displayName", display);
-
-    console.log("✔ CAMBIO DE VALOR GRUPO ET:");
-    console.log(" selectedEtiqueta (ID) =", etiquetaID);
-    console.log(" selectedValor =", selectedValor);
-    console.log(" display =", display);
-},
-
-// Aceptar: escribir en createModel>/IDGRUPOET (y cerrar)
-onApplyGrupoEt: function () {
-  const oGM = this.getView().getModel("grupoEtModel");
-  const oCreate = this.getView().getModel("createModel");
-
-  const sEtiId = oGM.getProperty("/selectedEtiqueta"); // siempre es ID
-  const sValId = oGM.getProperty("/selectedValor");    // siempre es ID
-
-  console.log("✔ VALIDANDO:");
-  console.log(" selectedEtiqueta =", sEtiId);
-  console.log(" selectedValor =", sValId);
-
-  if (!sEtiId || !sValId) {
-    MessageToast.show("Selecciona Etiqueta y Valor antes de aceptar.");
-    return;
-  }
-
-  // Guardamos SOLO LOS IDs
-  oCreate.setProperty("/GRP_ET_IDETIQUETA", sEtiId);
-  oCreate.setProperty("/GRP_ET_IDVALOR", sValId);
-
-  // Concatenación final
-  oCreate.setProperty("/IDGRUPOET", `${sEtiId}-${sValId}`);
-
-  this._oGrupoEtDialog.close();
-},
-
-// Cancelar: cerrar sin cambios
-onCancelGrupoEt: function () {
-  if (this._oGrupoEtDialog && this._oGrupoEtDialog.isOpen()) {
-    this._oGrupoEtDialog.close();
-  }
-}
+    _timeStr: function () {
+      const d = new Date();
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      const ss = String(d.getSeconds()).padStart(2, '0');
+      return `${hh}:${mm}:${ss}`;
+    },
 
 
   });

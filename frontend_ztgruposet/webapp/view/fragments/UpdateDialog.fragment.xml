@@ -5,36 +5,85 @@
 >
     <Dialog id="updateDialog" title="Actualizar Registro">
         <content>
-            <f:SimpleForm
-                editable="true"
-                layout="ResponsiveGridLayout"
-            >
+            <f:SimpleForm editable="true" layout="ResponsiveGridLayout">
                 <f:content>
-                    <Label text="Sociedad" />
-                    <Input value="{updateModel>/IDSOCIEDAD}" editable="false" />
 
-                    <Label text="CEDI" />
-                    <Input value="{updateModel>/IDCEDI}" editable="false" />
+                    <!-- SOCIEDAD -->
+                    <Label text="Sociedad" required="true" />
+                    <ComboBox
+                        items="{cascadeModel>/sociedades}"
+                        selectedKey="{updateModel>/IDSOCIEDAD}"
+                        selectionChange=".onUpdateSociedadChange"
+                        placeholder="Selecciona una Sociedad">
+                        <core:Item key="{cascadeModel>key}" text="{cascadeModel>text}" />
+                    </ComboBox>
 
-                    <Label text="Etiqueta" />
-                    <Input value="{updateModel>/IDETIQUETA}" editable="false" />
+                    <!-- CEDI -->
+                    <Label text="CEDI" required="true" />
+                    <ComboBox
+                        items="{cascadeModel>/cedis}"
+                        selectedKey="{updateModel>/IDCEDI}"
+                        selectionChange=".onUpdateCediChange"
+                        enabled="{= !!${updateModel>/IDSOCIEDAD} }"
+                        placeholder="Selecciona un CEDI">
+                        <core:Item key="{cascadeModel>key}" text="{cascadeModel>text}" />
+                    </ComboBox>
 
-                    <Label text="Valor" />
-                    <Input value="{updateModel>/IDVALOR}" editable="false" />
+                    <!-- ETIQUETA con botón de filtros -->
+                    <Label text="Etiqueta" required="true" />
+                    <HBox alignItems="Center">
+                        <ComboBox
+                            items="{cascadeModel>/etiquetas}"
+                            selectedKey="{updateModel>/IDETIQUETA}"
+                            selectionChange=".onUpdateEtiquetaChange"
+                            enabled="{= !!${updateModel>/IDCEDI} }"
+                            placeholder="Selecciona una Etiqueta"
+                            width="100%">
+                            <core:Item key="{cascadeModel>key}" text="{cascadeModel>key}" />
+                        </ComboBox>
+                        <Button
+                            icon="sap-icon://filter"
+                            press=".onUpdateEtiquetaFilterPress"
+                            tooltip="Filtros avanzados"
+                            class="sapUiTinyMarginBegin" />
+                    </HBox>
 
+                    <!-- VALOR -->
+                    <Label text="Valor" required="true" />
+                    <ComboBox
+                        items="{cascadeModel>/valores}"
+                        selectedKey="{updateModel>/IDVALOR}"
+                        enabled="{= !!${updateModel>/IDETIQUETA} }"
+                        placeholder="Selecciona un Valor">
+                        <core:Item key="{cascadeModel>key}" text="{cascadeModel>key}" />
+                    </ComboBox>
+
+                    <!-- GRUPO ET -->
                     <Label text="Grupo ET" />
-                    <Input value="{updateModel>/IDGRUPOET}" editable="false" />
+                    <HBox alignItems="Center">
+                        <Input
+                            id="idInputGrupoEtUpdate"
+                            value="{updateModel>/IDGRUPOET}"
+                            editable="false"
+                            width="100%" />
+                        <Button
+                            icon="sap-icon://edit"
+                            press=".onUpdateOpenGrupoEt"
+                            tooltip="Definir Grupo ET"
+                            class="sapUiTinyMarginBegin" />
+                    </HBox>
 
+                    <!-- ID (read-only porque es parte de la PK) -->
                     <Label text="ID" />
                     <Input value="{updateModel>/ID}" editable="false" />
 
+                    <!-- INFORMACIÓN ADICIONAL -->
                     <Label text="Información Adicional" required="true" />
-<TextArea 
-    value="{updateModel>/INFOAD}" 
-    editable="true" 
-    rows="4" 
-    width="100%" 
-/>
+                    <TextArea 
+                        value="{updateModel>/INFOAD}" 
+                        editable="true" 
+                        rows="4" 
+                        width="100%" />
 
                 </f:content>
             </f:SimpleForm>
