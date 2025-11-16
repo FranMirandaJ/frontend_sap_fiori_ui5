@@ -707,20 +707,22 @@ sap.ui.define([
         return;
       }
 
-      // 1. Cargar catálogos externos (igual que en Create)
+      // 🟢 GUARDAR COPIA DEL REGISTRO ORIGINAL (para enviar llaves originales al backend)
+      this._originalRecord = Object.assign({}, oRec);
+
+      // 1. Cargar catálogos externos
       await this._loadExternalCatalogData();
 
       // 2. Copiar datos al updateModel
       const oUpdateModel = this.getView().getModel("updateModel");
       oUpdateModel.setData(Object.assign({}, oRec));
 
-      // 3. Pre-cargar las cascadas basadas en los valores actuales
+      // 3. Pre-cargar cascadas
       await this._preloadUpdateCascades(oRec);
 
-      console.log("HOLAAAAAAAAAAAAAAAAAAAAAAAA", oRec);
+      console.log("📝 Registro original guardado:", this._originalRecord);
 
-
-      // 4. Abrir el diálogo
+      // 4. Abrir diálogo
       this._getUpdateDialog().then(oDialog => {
         oDialog.open();
       });
@@ -935,6 +937,7 @@ sap.ui.define([
       const oView = this.getView();
       const oUpdateModel = oView.getModel("updateModel");
       const oRecActualizado = oUpdateModel.getData();
+      const oRecOriginal = this._originalRecord; // 🟢 Guardamos el registro original
 
       // Validar campos requeridos
       if (!oRecActualizado.IDSOCIEDAD || !oRecActualizado.IDCEDI ||
@@ -946,27 +949,32 @@ sap.ui.define([
 
       const url = this._getApiParams("UpdateOne");
 
-      // 🟢 USAR LA MISMA ESTRUCTURA QUE onActivePress
+      // 🟢 Estructura: Llaves ORIGINALES + data con CAMBIOS
       const payload = {
-        ...this._buildDeletePayload(oRecActualizado), // Las 6 llaves exactas
+        // Llaves ORIGINALES (para identificar el registro)
+        IDSOCIEDAD: oRecOriginal.IDSOCIEDAD,
+        IDCEDI: oRecOriginal.IDCEDI,
+        IDETIQUETA: oRecOriginal.IDETIQUETA,
+        IDVALOR: oRecOriginal.IDVALOR,
+        IDGRUPOET: oRecOriginal.IDGRUPOET,
+        ID: oRecOriginal.ID,
+
+        // Datos NUEVOS (pueden incluir cambios en las llaves)
         data: {
-          // Solo los campos que quieres actualizar
           IDSOCIEDAD: oRecActualizado.IDSOCIEDAD,
           IDCEDI: oRecActualizado.IDCEDI,
           IDETIQUETA: oRecActualizado.IDETIQUETA,
           IDVALOR: oRecActualizado.IDVALOR,
           IDGRUPOET: oRecActualizado.IDGRUPOET,
+          ID: oRecActualizado.ID,
           INFOAD: oRecActualizado.INFOAD,
-          ACTIVO: oRecActualizado.ACTIVO !== false, // Preservar estado actual
-          BORRADO: oRecActualizado.BORRADO || false,
-          FECHAULTMOD: this._todayStr(),
-          HORAULTMOD: this._timeStr(),
-          USUARIOMOD: "FMIRANDAJ"
+          ACTIVO: oRecActualizado.ACTIVO !== false,
+          BORRADO: oRecActualizado.BORRADO || false
         }
       };
 
-      console.log("📤 URL de actualización:", url);
-      console.log("📦 Payload enviado:", JSON.stringify(payload, null, 2));
+      console.log("📤 URL:", url);
+      console.log("📦 Payload:", JSON.stringify(payload, null, 2));
 
       oView.setBusy(true);
       try {
@@ -978,9 +986,12 @@ sap.ui.define([
 
         const json = await res.json().catch(() => ({}));
 
-        console.log("📥 Respuesta del servidor:", json);
-
         if (!res.ok) {
+          // 🟢 Manejo especial para duplicados
+          if (res.status === 409) {
+            MessageBox.error("Ya existe un registro con esos datos. No se puede actualizar.");
+            return;
+          }
           throw new Error("HTTP " + res.status + (json.messageUSR ? " - " + json.messageUSR : ""));
         }
 
@@ -990,7 +1001,7 @@ sap.ui.define([
         this.byId("tblGrupos").removeSelections(true);
 
       } catch (e) {
-        console.error("💥 Error al actualizar:", e);
+        console.error("💥 Error:", e);
         MessageBox.error("No se pudo actualizar: " + e.message);
       } finally {
         oView.setBusy(false);
