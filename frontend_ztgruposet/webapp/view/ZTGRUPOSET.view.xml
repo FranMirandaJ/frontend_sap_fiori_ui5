@@ -9,6 +9,7 @@
   <Page
     id="toolPageWrapper"
     showHeader="false"
+    enableScrolling="false"
   >
     <tnt:ToolPage id="toolPage">
       <!-- TOOL HEADER -->

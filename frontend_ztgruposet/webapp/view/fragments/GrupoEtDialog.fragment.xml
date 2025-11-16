@@ -22,7 +22,7 @@
         selectionChange=".onGrupoValorChange"
         enabled="{= !!${grupoEtModel>/selectedEtiqueta} }"
         placeholder="Selecciona un Valor">
-        <core:Item key="{grupoEtModel>key}" text="{grupoEtModel>key}" />
+        <core:Item key="{grupoEtModel>key}" text="{grupoEtModel>text}" />
       </ComboBox>
 
 
