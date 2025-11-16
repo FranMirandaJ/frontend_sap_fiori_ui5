@@ -413,15 +413,19 @@ sap.ui.define([
           BORRADO: false
         };
 
-        const sApiParams = this._getApiParams();
-        const url = this._getApiParams("Create"); const res = await fetch(url, {
+        const url = this._getApiParams("Create");
+        const res = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
-        const json = await res.json();
 
-        if (!res.ok || json.error) {
+        if (!res.ok) {
+          if (res.status === 409 ) {
+            MessageBox.error("Ya existe un registro con estos datos. No se puede crear un duplicado.");
+            return;
+          }
+          const json = await res.json().catch(() => ({}));
           MessageBox.error(json.error || "No se pudo crear el registro.");
           return;
         }

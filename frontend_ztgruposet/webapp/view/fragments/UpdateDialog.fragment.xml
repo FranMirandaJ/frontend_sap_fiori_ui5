@@ -75,7 +75,7 @@
 
                     <!-- ID (read-only porque es parte de la PK) -->
                     <Label text="ID" />
-                    <Input value="{updateModel>/ID}" editable="false" />
+                    <Input value="{updateModel>/ID}" editable="true" />
 
                     <!-- INFORMACIÓN ADICIONAL -->
                     <Label text="Información Adicional" required="true" />
