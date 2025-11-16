@@ -279,7 +279,7 @@ sap.ui.define([
       const sLoggedUser = "FMIRANDAJ"; // Asegúrate que este sea el usuario correcto
 
       // 2. ¡LA SOLUCIÓN! Usamos la URL completa de Render
-      const sBaseUrl = "http://localhost:3333/api/security/gruposet/crud";
+      const sBaseUrl = "https://app-restful-sap-cds.onrender.com/api/security/gruposet/crud";
 
       // 3. Devolvemos la URL completa con todos los parámetros
       return `${sBaseUrl}?ProcessType=${sProcessType}&DBServer=${sDBServer}&LoggedUser=${sLoggedUser}`;
