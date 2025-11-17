@@ -421,7 +421,7 @@ sap.ui.define([
         });
 
         if (!res.ok) {
-          if (res.status === 409 ) {
+          if (res.status === 409) {
             MessageBox.error("Ya existe un registro con estos datos. No se puede crear un duplicado.");
             return;
           }
@@ -1921,6 +1921,15 @@ sap.ui.define([
       const ss = String(d.getSeconds()).padStart(2, '0');
       return `${hh}:${mm}:${ss}`;
     },
+
+    onColumnResize: function (oEvent) {
+      const oColumn = oEvent.getParameter("column");
+      const sWidth = oEvent.getParameter("width");
+      console.log(`Columna redimensionada: ${oColumn.getId()}, Ancho: ${sWidth}`);
+
+      // Opcional: Guardar en localStorage para persistencia
+      // this._saveColumnWidth(oColumn.getId(), sWidth);
+    }
 
 
   });
